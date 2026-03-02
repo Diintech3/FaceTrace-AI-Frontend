@@ -101,7 +101,7 @@ function App() {
               </div>
               <div>
                 <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  FaceTrace AI
+                  DigitalTrace AI
                 </h1>
                 <p className="text-[10px] sm:text-xs text-gray-400 hidden sm:block">Advanced OSINT Intelligence Platform</p>
               </div>
