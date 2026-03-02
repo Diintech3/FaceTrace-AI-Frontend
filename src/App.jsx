@@ -48,6 +48,12 @@ function App() {
         const formData = new FormData();
         formData.append('image', image);
         
+        // Add username if provided
+        if (username.trim()) {
+          formData.append('username', username.trim());
+          console.log('Username hint provided:', username);
+        }
+        
         setTimeout(() => setScanProgress('🤖 AI analyzing image...'), 1000);
         setTimeout(() => setScanProgress('👤 Detecting faces...'), 3000);
         setTimeout(() => setScanProgress('🔍 Searching social media...'), 5000);
@@ -258,6 +264,24 @@ function App() {
                   <span className="truncate">Selected: {image.name}</span>
                 </p>
               )}
+              
+              {/* Optional username input for better results */}
+              <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium mb-2 text-blue-300">
+                  <span className="flex items-center gap-2">
+                    <FaUser />
+                    <span>Know the username? (Optional - for better results)</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="e.g., elonmusk"
+                  className="w-full px-3 py-2 bg-gray-900/80 border border-blue-500/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm placeholder-gray-500"
+                />
+                <p className="mt-2 text-xs text-gray-400">💡 Tip: Adding username helps find accurate profiles</p>
+              </div>
             </div>
           )}
 
@@ -551,12 +575,11 @@ function App() {
                       )}
                       
                       {/* Bio/Description */}
-                      {profile.bio && profile.bio !== 'No bio' && (
-                        <p className="text-gray-400 mt-2 text-sm italic">"{profile.bio}"</p>
-                      )}
-                      {profile.description && (
-                        <p className="text-gray-400 mt-2 text-sm italic">"{profile.description}"</p>
-                      )}
+                      {(profile.bio && profile.bio !== 'No bio') || profile.description ? (
+                        <p className="text-gray-400 mt-2 text-sm italic line-clamp-3">
+                          "{profile.bio && profile.bio !== 'No bio' ? profile.bio : profile.description}"
+                        </p>
+                      ) : null}
                       
                       {/* Contact Information */}
                       <div className="mt-3 space-y-1 text-sm">
@@ -579,38 +602,43 @@ function App() {
 
                       {/* Statistics */}
                       <div className="flex flex-wrap gap-4 mt-4 text-sm">
-                        {profile.followers && profile.followers !== 'N/A' && (
+                        {profile.followers && profile.followers !== 'N/A' && profile.followers !== 'Not available' && (
                           <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.followers} followers</span>
                         )}
-                        {profile.following && profile.following !== 'N/A' && (
+                        {profile.following && profile.following !== 'N/A' && profile.following !== 'Not available' && (
                           <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaArrowRight /> {profile.following} following</span>
                         )}
-                        {profile.posts && profile.posts !== 'N/A' && (
+                        {profile.posts && profile.posts !== 'N/A' && profile.posts !== 'Not available' && (
                           <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaCamera /> {profile.posts} posts</span>
                         )}
-                        {profile.subscribers && (
+                        {profile.subscribers && profile.subscribers !== 'N/A' && profile.subscribers !== 'Not available' && (
                           <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.subscribers} subscribers</span>
                         )}
-                        {profile.videos && (
+                        {profile.videos && profile.videos !== 'N/A' && profile.videos !== 'Not available' && (
                           <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaYoutube /> {profile.videos} videos</span>
                         )}
-                        {profile.views && (
+                        {profile.views && profile.views !== 'N/A' && profile.views !== 'Not available' && (
                           <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaEye /> {profile.views} views</span>
                         )}
-                        {profile.karma && (
+                        {profile.karma && profile.karma !== 'N/A' && (
                           <span className="bg-orange-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaStar /> {profile.karma} karma</span>
                         )}
-                        {profile.publicRepos && (
+                        {profile.publicRepos && profile.publicRepos !== 'N/A' && (
                           <span className="bg-gray-700 px-3 py-1 rounded-full flex items-center gap-1"><FaBox /> {profile.publicRepos} repos</span>
                         )}
                       </div>
 
                       {/* Additional Info */}
-                      {profile.createdAt && (
+                      {profile.createdAt && profile.createdAt !== 'N/A' && (
                         <p className="text-gray-500 text-xs mt-3 flex items-center gap-1"><FaCalendar /> Joined: {profile.createdAt}</p>
                       )}
-                      {profile.message && (
-                        <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><FaInfoCircle /> {profile.message}</p>
+                      {profile.message && profile.message !== 'Profile data extracted successfully' && (
+                        <p className="text-blue-400 text-xs mt-1 flex items-center gap-1"><FaInfoCircle /> {profile.message}</p>
+                      )}
+                      {profile.found !== undefined && (
+                        <p className="text-xs mt-1 flex items-center gap-1">
+                          {profile.found ? <span className="text-green-400">✅ Profile exists</span> : <span className="text-red-400">❌ Profile not found</span>}
+                        </p>
                       )}
 
                       <a
