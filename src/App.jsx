@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { FaUser, FaLink, FaImage, FaRocket, FaSearch, FaYoutube, FaInstagram, FaTwitter, FaLinkedin, FaGithub, FaReddit, FaTelegram, FaPinterest, FaFacebook } from 'react-icons/fa'
+import { FaUser, FaLink, FaImage, FaRocket, FaSearch, FaYoutube, FaInstagram, FaTwitter, FaLinkedin, FaGithub, FaReddit, FaTelegram, FaPinterest, FaFacebook, FaEnvelope, FaPhone, FaMapMarkerAlt, FaBuilding, FaGlobe, FaCheckCircle, FaTiktok, FaCalendar, FaInfoCircle, FaUsers, FaCamera, FaEye, FaStar, FaBox, FaArrowRight, FaTimes } from 'react-icons/fa'
 import { HiSparkles } from 'react-icons/hi'
 import { BiLoaderAlt } from 'react-icons/bi'
-import { MdVerified } from 'react-icons/md'
+import { MdVerified, MdPerson, MdDescription, MdBarChart } from 'react-icons/md'
+import { BsRobot, BsSearch } from 'react-icons/bs'
 import './App.css'
 
 function App() {
@@ -10,12 +11,15 @@ function App() {
   const [username, setUsername] = useState('');
   const [profileUrl, setProfileUrl] = useState('');
   const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [scanProgress, setScanProgress] = useState('');
 
   const handleSearch = async () => {
     setLoading(true);
     setResults(null);
+    setScanProgress('');
 
     try {
       let response;
@@ -24,6 +28,7 @@ function App() {
       
       if (searchType === 'username') {
         console.log('Searching username:', username);
+        setScanProgress('🔍 Searching across social media platforms...');
         response = await fetch(`${API_URL}/api/search/username`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -31,6 +36,7 @@ function App() {
         });
       } else if (searchType === 'url') {
         console.log('Searching URL:', profileUrl);
+        setScanProgress('🔍 Analyzing profile URL...');
         response = await fetch(`${API_URL}/api/search/url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -38,8 +44,15 @@ function App() {
         });
       } else if (searchType === 'image' && image) {
         console.log('Searching image:', image.name);
+        setScanProgress('📸 Uploading image...');
         const formData = new FormData();
         formData.append('image', image);
+        
+        setTimeout(() => setScanProgress('🤖 AI analyzing image...'), 1000);
+        setTimeout(() => setScanProgress('👤 Detecting faces...'), 3000);
+        setTimeout(() => setScanProgress('🔍 Searching social media...'), 5000);
+        setTimeout(() => setScanProgress('🎯 Matching profiles...'), 7000);
+        
         response = await fetch(`${API_URL}/api/search/image`, {
           method: 'POST',
           body: formData
@@ -49,8 +62,10 @@ function App() {
       const data = await response.json();
       console.log('Response data:', data);
       setResults(data.data);
+      setScanProgress('✅ Scan complete!');
     } catch (error) {
       console.error('Search error:', error);
+      setScanProgress('❌ Search failed');
       alert('Search failed: ' + error.message);
     } finally {
       setLoading(false);
@@ -205,17 +220,41 @@ function App() {
                   <span>Upload Image</span>
                 </span>
               </label>
+              
+              {imagePreview && (
+                <div className="mb-4 relative group">
+                  <img src={imagePreview} alt="Preview" className="w-48 h-48 object-cover mx-auto rounded-xl border-2 border-purple-500 shadow-lg" />
+                  <button
+                    onClick={() => {
+                      setImage(null);
+                      setImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg text-sm hover:bg-red-600 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              )}
+              
               <div className="relative">
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setImage(e.target.files[0])}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    setImage(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setImagePreview(reader.result);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
                   className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none transition text-xs sm:text-sm md:text-base file:mr-3 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer file:font-semibold file:text-xs sm:file:text-sm hover:file:bg-purple-700 file:transition"
                 />
               </div>
               {image && (
                 <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-green-400 flex items-center gap-2">
-                  <span>✓</span>
+                  <FaCheckCircle />
                   <span className="truncate">Selected: {image.name}</span>
                 </p>
               )}
@@ -225,12 +264,18 @@ function App() {
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="w-full mt-4 sm:mt-5 md:mt-6 px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30"
+            className="w-full mt-4 sm:mt-5 md:mt-6 px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30 relative overflow-hidden"
           >
+            {loading && (
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 animate-pulse"></div>
+            )}
             {loading ? (
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
-                <BiLoaderAlt className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                <span className="text-xs sm:text-sm md:text-base">Searching...</span>
+              <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                <div className="flex items-center gap-2">
+                  <BiLoaderAlt className="w-5 h-5 animate-spin" />
+                  <BsSearch className="w-4 h-4 animate-bounce" />
+                </div>
+                <span className="text-xs sm:text-sm font-semibold animate-pulse">{scanProgress || 'Searching...'}</span>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
@@ -496,7 +541,7 @@ function App() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-2xl font-bold text-purple-400">{profile.platform}</h3>
-                        {(profile.isVerified || profile.verified) && <span className="text-blue-400 text-xl">✓</span>}
+                        {(profile.isVerified || profile.verified) && <MdVerified className="text-blue-400 text-xl" />}
                       </div>
                       
                       {/* Username & Full Name */}
@@ -516,56 +561,56 @@ function App() {
                       {/* Contact Information */}
                       <div className="mt-3 space-y-1 text-sm">
                         {profile.email && profile.email !== 'N/A' && (
-                          <p className="text-green-400">📧 Email: {profile.email}</p>
+                          <p className="text-green-400 flex items-center gap-2"><FaEnvelope /> Email: {profile.email}</p>
                         )}
                         {profile.phone && profile.phone !== 'N/A' && (
-                          <p className="text-green-400">📱 Phone: {profile.phone}</p>
+                          <p className="text-green-400 flex items-center gap-2"><FaPhone /> Phone: {profile.phone}</p>
                         )}
                         {profile.location && profile.location !== 'N/A' && (
-                          <p className="text-blue-400">📍 Location: {profile.location}</p>
+                          <p className="text-blue-400 flex items-center gap-2"><FaMapMarkerAlt /> Location: {profile.location}</p>
                         )}
                         {profile.company && profile.company !== 'N/A' && (
-                          <p className="text-yellow-400">🏢 Company: {profile.company}</p>
+                          <p className="text-yellow-400 flex items-center gap-2"><FaBuilding /> Company: {profile.company}</p>
                         )}
                         {profile.website && profile.website !== 'N/A' && (
-                          <p className="text-cyan-400">🌐 Website: <a href={profile.website} target="_blank" rel="noopener noreferrer" className="underline">{profile.website}</a></p>
+                          <p className="text-cyan-400 flex items-center gap-2"><FaGlobe /> Website: <a href={profile.website} target="_blank" rel="noopener noreferrer" className="underline">{profile.website}</a></p>
                         )}
                       </div>
 
                       {/* Statistics */}
                       <div className="flex flex-wrap gap-4 mt-4 text-sm">
                         {profile.followers && profile.followers !== 'N/A' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full">👥 {profile.followers} followers</span>
+                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.followers} followers</span>
                         )}
                         {profile.following && profile.following !== 'N/A' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full">➡️ {profile.following} following</span>
+                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaArrowRight /> {profile.following} following</span>
                         )}
                         {profile.posts && profile.posts !== 'N/A' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full">📸 {profile.posts} posts</span>
+                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaCamera /> {profile.posts} posts</span>
                         )}
                         {profile.subscribers && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full">👥 {profile.subscribers} subscribers</span>
+                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.subscribers} subscribers</span>
                         )}
                         {profile.videos && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full">🎥 {profile.videos} videos</span>
+                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaYoutube /> {profile.videos} videos</span>
                         )}
                         {profile.views && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full">👁️ {profile.views} views</span>
+                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaEye /> {profile.views} views</span>
                         )}
                         {profile.karma && (
-                          <span className="bg-orange-900/50 px-3 py-1 rounded-full">⭐ {profile.karma} karma</span>
+                          <span className="bg-orange-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaStar /> {profile.karma} karma</span>
                         )}
                         {profile.publicRepos && (
-                          <span className="bg-gray-700 px-3 py-1 rounded-full">📦 {profile.publicRepos} repos</span>
+                          <span className="bg-gray-700 px-3 py-1 rounded-full flex items-center gap-1"><FaBox /> {profile.publicRepos} repos</span>
                         )}
                       </div>
 
                       {/* Additional Info */}
                       {profile.createdAt && (
-                        <p className="text-gray-500 text-xs mt-3">📅 Joined: {profile.createdAt}</p>
+                        <p className="text-gray-500 text-xs mt-3 flex items-center gap-1"><FaCalendar /> Joined: {profile.createdAt}</p>
                       )}
                       {profile.message && (
-                        <p className="text-gray-500 text-xs mt-1">ℹ️ {profile.message}</p>
+                        <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><FaInfoCircle /> {profile.message}</p>
                       )}
 
                       <a
@@ -574,9 +619,9 @@ function App() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-semibold shadow-lg shadow-purple-500/30"
                       >
-                        <span>🔗</span>
+                        <FaGlobe />
                         <span>View Profile</span>
-                        <span>→</span>
+                        <FaArrowRight />
                       </a>
                     </div>
                   </div>
