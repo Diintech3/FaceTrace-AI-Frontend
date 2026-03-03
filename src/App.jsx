@@ -16,6 +16,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
 
+  const searchedLabel =
+    results?.username ||
+    results?.extractedUsername ||
+    (searchType === 'url' ? profileUrl : username) ||
+    '';
+
   const handleSearch = async () => {
     setLoading(true);
     setResults(null);
@@ -313,6 +319,16 @@ function App() {
         {/* Results */}
         {results && results.profiles && results.profiles.length > 0 && (
           <div className="mt-8">
+            {/* Raw API Response (always show everything backend returned) */}
+            <details className="bg-black/30 rounded-2xl p-6 border border-gray-700/50 mb-6">
+              <summary className="cursor-pointer text-sm font-semibold text-gray-200">
+                📦 Show full API response (raw JSON)
+              </summary>
+              <pre className="mt-4 text-xs whitespace-pre-wrap break-words text-gray-200 max-h-[420px] overflow-auto bg-black/40 p-4 rounded-xl border border-gray-700/60">
+                {JSON.stringify(results, null, 2)}
+              </pre>
+            </details>
+
             {/* AI Biodata Card - For ALL searches */}
             {results.aiBiodata && results.aiBiodata.success && (
               <div className="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-blue-500/40 mb-6 shadow-2xl">
@@ -339,6 +355,59 @@ function App() {
                 
                 <div className="mt-4 text-center text-xs text-gray-400">
                   ℹ️ AI-generated analysis based on publicly available social media data. Verify information independently.
+                </div>
+              </div>
+            )}
+
+            {/* Face++ API Response - when Face++ used (fallback when Azure not configured) */}
+            {results.facePlusPlus && results.facePlusPlus.success && !results.azureFace?.success && (
+              <div className="bg-gradient-to-br from-amber-900/60 to-orange-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-amber-500/40 mb-6 shadow-2xl">
+                <h2 className="text-2xl font-bold mb-4 text-center text-amber-400">Face++ API (Fallback)</h2>
+                <div className="bg-black/40 rounded-xl p-4 text-sm">
+                  <p><span className="text-gray-400">Status:</span> <span className="text-green-400">Success</span> | <span className="text-gray-400">Face Count:</span> {results.facePlusPlus.faces?.length || 1}</p>
+                  <p className="text-xs text-gray-500 mt-2">Azure Face not configured – Face++ used for detection</p>
+                </div>
+              </div>
+            )}
+
+            {/* Azure Face API Response - Image Search */}
+            {results.azureFace && (
+              <div className="bg-gradient-to-br from-sky-900/60 to-blue-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-sky-500/40 mb-6 shadow-2xl">
+                <h2 className="text-3xl font-bold mb-6 text-center text-sky-400 flex items-center justify-center gap-3">
+                  🔷 Azure Face API Response
+                  <span className={`text-sm px-3 py-1 rounded-full ${results.azureFace.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {results.azureFace.success ? 'Working ✓' : 'Failed'}
+                  </span>
+                </h2>
+                <div className="bg-black/40 rounded-xl p-6 border border-sky-500/30">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-sky-300 mb-3">Detection Result</h3>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-gray-400">Status:</span> <span className={results.azureFace.success ? 'text-green-400' : 'text-red-400'}>{results.azureFace.success ? 'Success' : 'Failed'}</span></p>
+                        <p><span className="text-gray-400">Face Count:</span> <span className="text-white font-semibold">{results.azureFace.faceCount ?? 0}</span></p>
+                        <p><span className="text-gray-400">Model:</span> <span className="text-sky-300">{results.azureFace.detectionModel || 'N/A'}</span></p>
+                        <p><span className="text-gray-400">Message:</span> <span className="text-gray-200">{results.azureFace.message}</span></p>
+                        {results.azureFace.note && <p className="text-xs text-gray-500 mt-2">{results.azureFace.note}</p>}
+                      </div>
+                    </div>
+                    {results.azureFace.faces && results.azureFace.faces.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold text-sky-300 mb-3">Face Rectangles (Position)</h3>
+                        <div className="space-y-3">
+                          {results.azureFace.faces.map((face, idx) => (
+                            <div key={idx} className="bg-gray-900/50 rounded-lg p-3 font-mono text-xs">
+                              <p>Face #{idx + 1}: top={face.top || face.faceRectangle?.top}, left={face.left || face.faceRectangle?.left}, width={face.width || face.faceRectangle?.width}, height={face.height || face.faceRectangle?.height}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm text-gray-400 hover:text-sky-400">📋 Raw Azure Face Response (JSON)</summary>
+                    <pre className="mt-2 text-xs text-gray-300 bg-black/60 p-4 rounded-lg overflow-auto max-h-48">{JSON.stringify(results.azureFace, null, 2)}</pre>
+                  </details>
                 </div>
               </div>
             )}
@@ -410,7 +479,7 @@ function App() {
               
               <div className="mt-6 flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-400 flex-wrap">
                 <span>🔍</span>
-                <span>Searched: <span className="text-purple-400 font-semibold">{results.username}</span></span>
+                <span>Searched: <span className="text-purple-400 font-semibold">{searchedLabel}</span></span>
               </div>
             </div>
 
@@ -542,6 +611,102 @@ function App() {
               </div>
             </div>
 
+            {/* Additional Data Sources Section */}
+            {results.additionalDataSources && (
+              <div className="bg-gradient-to-br from-orange-900/60 to-red-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-orange-500/40 mb-6 shadow-2xl">
+                <h2 className="text-3xl font-bold mb-6 text-center text-orange-400">📞 Additional Contact Information</h2>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Phone Numbers */}
+                  {results.additionalDataSources.enhancedContacts?.phones?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
+                        📱 Phone Numbers ({results.additionalDataSources.enhancedContacts.phones.length})
+                      </h3>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {results.additionalDataSources.enhancedContacts.phones.slice(0, 20).map((phone, idx) => (
+                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-green-400 font-mono text-sm">
+                            {phone}
+                          </div>
+                        ))}
+                        {results.additionalDataSources.enhancedContacts.phones.length > 20 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">+ {results.additionalDataSources.enhancedContacts.phones.length - 20} more</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Emails - Scraped */}
+                  {results.additionalDataSources.scrapedEmails?.emails?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
+                        📧 Scraped Emails ({results.additionalDataSources.scrapedEmails.emails.length})
+                      </h3>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {results.additionalDataSources.scrapedEmails.emails.map((email, idx) => (
+                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-blue-400 font-mono text-sm break-all">
+                            {email}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-3">From public sources - verify before use</p>
+                    </div>
+                  )}
+                  {/* Possible Emails (username patterns) */}
+                  {results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
+                        📧 Possible Emails ({results.additionalDataSources.possibleEmails.possibleEmails.length})
+                      </h3>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {results.additionalDataSources.possibleEmails.possibleEmails.map((email, idx) => (
+                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-cyan-400 font-mono text-sm break-all">
+                            {email}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-3">{results.additionalDataSources.possibleEmails.note}</p>
+                    </div>
+                  )}
+                  {/* Scraped Phones */}
+                  {results.additionalDataSources.scrapedPhones?.phones?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
+                        📱 Scraped Phones ({results.additionalDataSources.scrapedPhones.phones.length})
+                      </h3>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {results.additionalDataSources.scrapedPhones.phones.slice(0, 30).map((phone, idx) => (
+                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-green-400 font-mono text-sm">
+                            {typeof phone === 'string' ? phone : JSON.stringify(phone)}
+                          </div>
+                        ))}
+                        {results.additionalDataSources.scrapedPhones.phones.length > 30 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">+ {results.additionalDataSources.scrapedPhones.phones.length - 30} more</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Associated Accounts */}
+                {results.advancedInvestigation?.associatedAccounts?.length > 0 && (
+                  <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30 mt-6">
+                    <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
+                      🔗 Associated Accounts ({results.advancedInvestigation.associatedAccounts.length})
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {results.advancedInvestigation.associatedAccounts.map((account, idx) => (
+                        <div key={idx} className="bg-gray-900/50 rounded-lg p-3 text-center">
+                          <p className="text-purple-400 font-semibold text-sm">@{account.username}</p>
+                          <p className="text-xs text-gray-500 mt-1">{account.platform}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 flex-wrap">
               <span className="text-2xl sm:text-3xl">📊</span>
               <span>Detailed Profiles</span>
@@ -662,6 +827,30 @@ function App() {
         {/* No Results */}
         {results && (!results.profiles || results.profiles.length === 0) && (
           <div className="mt-8">
+            {/* Raw API Response (always show everything backend returned) */}
+            <details className="bg-black/30 rounded-2xl p-6 border border-gray-700/50 mb-6">
+              <summary className="cursor-pointer text-sm font-semibold text-gray-200">
+                📦 Show full API response (raw JSON)
+              </summary>
+              <pre className="mt-4 text-xs whitespace-pre-wrap break-words text-gray-200 max-h-[420px] overflow-auto bg-black/40 p-4 rounded-xl border border-gray-700/60">
+                {JSON.stringify(results, null, 2)}
+              </pre>
+            </details>
+
+            {/* Azure Face API - when no profiles */}
+            {results.azureFace && (
+              <div className="bg-gradient-to-br from-sky-900/70 to-blue-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-sky-500/50 mb-8 shadow-2xl">
+                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                  <span>🔷</span> Azure Face API
+                  <span className={`text-xs px-3 py-1 rounded-full ${results.azureFace.success ? 'bg-green-500/20' : 'bg-red-500/20'}`}>{results.azureFace.success ? 'Working ✓' : 'Failed'}</span>
+                </h2>
+                <div className="bg-black/40 rounded-xl p-4 text-sm">
+                  <p><span className="text-gray-400">Face Count:</span> {results.azureFace.faceCount ?? 0} | <span className="text-gray-400">Message:</span> {results.azureFace.message}</p>
+                  <details className="mt-3"><summary className="cursor-pointer text-gray-500">Raw JSON</summary><pre className="mt-2 text-xs overflow-auto max-h-32">{JSON.stringify(results.azureFace, null, 2)}</pre></details>
+                </div>
+              </div>
+            )}
+
             {/* Show AI Analysis regardless of profiles */}
             {results.aiAnalysis && results.aiAnalysis.success && (
               <div className="bg-gradient-to-br from-green-900/70 to-emerald-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-green-500/50 mb-8 shadow-2xl">
@@ -697,6 +886,36 @@ function App() {
                       {results.aiBiodata.biodata}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Additional contact data even when no profiles */}
+            {results.additionalDataSources && (results.additionalDataSources.enhancedContacts?.phones?.length > 0 || results.additionalDataSources.enhancedContacts?.emails?.length > 0 || results.additionalDataSources.scrapedEmails?.emails?.length > 0 || results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0 || results.additionalDataSources.scrapedPhones?.phones?.length > 0) && (
+              <div className="bg-gradient-to-br from-orange-900/60 to-red-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-orange-500/40 mb-8 shadow-2xl">
+                <h2 className="text-2xl font-bold mb-6 text-center text-orange-400">📞 Contact Information Found</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {results.additionalDataSources.enhancedContacts?.phones?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-lg font-bold text-orange-300 mb-4">📱 Phones ({results.additionalDataSources.enhancedContacts.phones.length})</h3>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {results.additionalDataSources.enhancedContacts.phones.slice(0, 15).map((p, i) => (
+                          <div key={i} className="text-green-400 font-mono text-sm">{p}</div>
+                        ))}
+                        {results.additionalDataSources.enhancedContacts.phones.length > 15 && <p className="text-xs text-gray-500">+ {results.additionalDataSources.enhancedContacts.phones.length - 15} more</p>}
+                      </div>
+                    </div>
+                  )}
+                  {(results.additionalDataSources.scrapedEmails?.emails?.length > 0 || results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0) && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
+                      <h3 className="text-lg font-bold text-orange-300 mb-4">📧 Emails</h3>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {(results.additionalDataSources.scrapedEmails?.emails || []).concat(results.additionalDataSources.possibleEmails?.possibleEmails || []).slice(0, 15).map((e, i) => (
+                          <div key={i} className="text-blue-400 font-mono text-sm break-all">{e}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
