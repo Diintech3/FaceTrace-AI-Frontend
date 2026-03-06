@@ -6,6 +6,10 @@ import ProfileCard from './components/Results/ProfileCard';
 import AIBiodata from './components/Results/AIBiodata';
 import PhoneDetails from './components/Results/PhoneDetails';
 import IPDetails from './components/Results/IPDetails';
+import PersonalInfo from './components/Results/PersonalInfo';
+import SocialMediaLinks from './components/Results/SocialMediaLinks';
+import FaceSearchResults from './components/Results/FaceSearchResults';
+import SimilarFacesGrid from './components/FaceAnalyzer/SimilarFacesGrid';
 import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP } from './utils/api';
 import './App.css';
 
@@ -22,6 +26,12 @@ function App() {
   const [ipData, setIpData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
+  const [similarFaces, setSimilarFaces] = useState(null);
+  const [analyzingFace, setAnalyzingFace] = useState(false);
+
+  const handleFaceSelection = async (selectedImage) => {
+    window.open(selectedImage.link || selectedImage.url, '_blank');
+  };
 
   const handleSearch = async () => {
     setLoading(true);
@@ -52,14 +62,23 @@ function App() {
           };
         }
       } else if (searchType === 'image' && image) {
-        setScanProgress('📸 Uploading image...');
-        setTimeout(() => setScanProgress('🤖 AI analyzing image...'), 1000);
-        setTimeout(() => setScanProgress('👤 Detecting faces...'), 3000);
-        setTimeout(() => setScanProgress('🔍 Searching social media...'), 5000);
+        setAnalyzingFace(true);
+        setSimilarFaces(null);
+        setResults(null);
+        setScanProgress('📸 Analyzing face...');
         
-        const response = await searchByImage(image, username);
+        const response = await searchByImage(image);
         console.log('Image search response:', response);
         responseData = response.data || response;
+        
+        setAnalyzingFace(false);
+        
+        if (responseData.similarFaces && responseData.similarFaces.length > 0) {
+          setSimilarFaces(responseData.similarFaces);
+          setResults(responseData);
+          setLoading(false);
+          return;
+        }
       } else if (searchType === 'phone') {
         setScanProgress('📱 Validating phone number...');
         const response = await validatePhone(phone);
@@ -127,9 +146,24 @@ function App() {
             onSearch={handleSearch}
           />
 
+          {/* Similar Faces Grid - Show during analyzing or when results available */}
+          {(analyzingFace || (similarFaces && similarFaces.length > 0)) && (
+            <SimilarFacesGrid 
+              similarImages={similarFaces || []} 
+              onSelectImage={handleFaceSelection}
+              loading={analyzingFace}
+              uploadedImage={imagePreview}
+            />
+          )}
+
           {/* Results */}
           {phoneData && <PhoneDetails phoneData={phoneData} />}
           {ipData && <IPDetails ipData={ipData} />}
+
+          {/* FaceCheck.id Results */}
+          {results && results.faceCheckResults && (
+            <FaceSearchResults faceCheckResults={results.faceCheckResults} />
+          )}
 
           {results && results.profiles && results.profiles.length > 0 && (
             <div className="mt-8">
@@ -144,6 +178,12 @@ function App() {
 
               {/* AI Biodata */}
               {results.aiBiodata && <AIBiodata aiBiodata={results.aiBiodata} />}
+
+              {/* Personal Information Card */}
+              <PersonalInfo results={results} />
+
+              {/* Social Media Links Card */}
+              <SocialMediaLinks profiles={results.profiles} />
 
               <div className="bg-gradient-to-br from-purple-900/70 to-pink-900/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border-2 border-purple-500/40 mb-6 sm:mb-8 shadow-2xl">
                 <h2 className="text-2xl sm:text-3xl font-bold mb-6">🎯 Investigation Results</h2>
