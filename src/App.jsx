@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { FaUser, FaLink, FaImage, FaRocket, FaSearch, FaYoutube, FaInstagram, FaTwitter, FaLinkedin, FaGithub, FaReddit, FaTelegram, FaPinterest, FaFacebook, FaEnvelope, FaPhone, FaMapMarkerAlt, FaBuilding, FaGlobe, FaCheckCircle, FaTiktok, FaCalendar, FaInfoCircle, FaUsers, FaCamera, FaEye, FaStar, FaBox, FaArrowRight, FaTimes } from 'react-icons/fa'
-import { HiSparkles } from 'react-icons/hi'
-import { BiLoaderAlt } from 'react-icons/bi'
-import { MdVerified, MdPerson, MdDescription, MdBarChart } from 'react-icons/md'
-import { BsRobot, BsSearch } from 'react-icons/bs'
-import './App.css'
+import { useState } from 'react';
+import Header from './components/Header';
+import SearchTypeSelector from './components/SearchForm/SearchTypeSelector';
+import SearchInput from './components/SearchForm/SearchInput';
+import ProfileCard from './components/Results/ProfileCard';
+import AIBiodata from './components/Results/AIBiodata';
+import PhoneDetails from './components/Results/PhoneDetails';
+import IPDetails from './components/Results/IPDetails';
+import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP } from './utils/api';
+import './App.css';
 
 function App() {
   const [searchType, setSearchType] = useState('username');
@@ -12,68 +15,71 @@ function App() {
   const [profileUrl, setProfileUrl] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [phone, setPhone] = useState('');
+  const [ip, setIp] = useState('');
   const [results, setResults] = useState(null);
+  const [phoneData, setPhoneData] = useState(null);
+  const [ipData, setIpData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
-
-  const searchedLabel =
-    results?.username ||
-    results?.extractedUsername ||
-    (searchType === 'url' ? profileUrl : username) ||
-    '';
 
   const handleSearch = async () => {
     setLoading(true);
     setResults(null);
+    setPhoneData(null);
+    setIpData(null);
     setScanProgress('');
 
     try {
-      let response;
-      
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      let responseData;
       
       if (searchType === 'username') {
-        console.log('Searching username:', username);
         setScanProgress('🔍 Searching across social media platforms...');
-        response = await fetch(`${API_URL}/api/search/username`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username })
-        });
+        const response = await searchByUsername(username);
+        console.log('Username search response:', response);
+        responseData = response.data || response;
       } else if (searchType === 'url') {
-        console.log('Searching URL:', profileUrl);
-        setScanProgress('🔍 Analyzing profile URL...');
-        response = await fetch(`${API_URL}/api/search/url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: profileUrl })
-        });
-      } else if (searchType === 'image' && image) {
-        console.log('Searching image:', image.name);
-        setScanProgress('📸 Uploading image...');
-        const formData = new FormData();
-        formData.append('image', image);
+        setScanProgress('🔍 Analyzing profile URL with Cheerio & Axios...');
+        const response = await searchByUrl(profileUrl);
+        console.log('URL search response:', response);
         
-        // Add username if provided
-        if (username.trim()) {
-          formData.append('username', username.trim());
-          console.log('Username hint provided:', username);
+        if (response.success && response.data) {
+          responseData = {
+            profiles: [response.data],
+            totalFound: 1,
+            username: response.data.username || response.data.name || 'Unknown',
+            searchedAt: new Date().toISOString()
+          };
         }
-        
+      } else if (searchType === 'image' && image) {
+        setScanProgress('📸 Uploading image...');
         setTimeout(() => setScanProgress('🤖 AI analyzing image...'), 1000);
         setTimeout(() => setScanProgress('👤 Detecting faces...'), 3000);
         setTimeout(() => setScanProgress('🔍 Searching social media...'), 5000);
-        setTimeout(() => setScanProgress('🎯 Matching profiles...'), 7000);
         
-        response = await fetch(`${API_URL}/api/search/image`, {
-          method: 'POST',
-          body: formData
-        });
+        const response = await searchByImage(image, username);
+        console.log('Image search response:', response);
+        responseData = response.data || response;
+      } else if (searchType === 'phone') {
+        setScanProgress('📱 Validating phone number...');
+        const response = await validatePhone(phone);
+        console.log('Phone validation response:', response);
+        setPhoneData(response.data);
+        setScanProgress('✅ Validation complete!');
+        setLoading(false);
+        return;
+      } else if (searchType === 'ip') {
+        setScanProgress('🌍 Looking up IP address...');
+        const response = await lookupIP(ip);
+        console.log('IP lookup response:', response);
+        setIpData(response.data);
+        setScanProgress('✅ Lookup complete!');
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      console.log('Response data:', data);
-      setResults(data.data);
+      console.log('Final results to display:', responseData);
+      setResults(responseData);
       setScanProgress('✅ Scan complete!');
     } catch (error) {
       console.error('Search error:', error);
@@ -88,849 +94,87 @@ function App() {
     <div className="min-h-screen w-full relative bg-slate-950 text-white overflow-x-hidden">
       {/* Animated Background */}
       <div className="fixed inset-0 z-0">
-        {/* Animated Gradient Orbs */}
         <div className="absolute top-0 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div className="absolute top-0 -right-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-40 left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-        
-        {/* Mesh Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/50 to-slate-950"></div>
-        
-        {/* Animated Grid */}
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px] animate-grid"></div>
-        
-        {/* Floating Glass Shapes */}
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute glass-morph animate-float-slow"
-            style={{
-              left: `${20 + i * 20}%`,
-              top: `${10 + i * 15}%`,
-              width: `${100 + i * 50}px`,
-              height: `${100 + i * 50}px`,
-              animationDelay: `${i * 2}s`,
-              animationDuration: `${20 + i * 5}s`
-            }}
-          />
-        ))}
       </div>
 
       {/* Content */}
       <div className="relative z-10">
-      {/* Header */}
-      <header className="w-full glass-header sticky top-0 z-50">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                <FaSearch className="text-xl sm:text-2xl text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  DigitalTrace AI
-                </h1>
-                <p className="text-[10px] sm:text-xs text-gray-400 hidden sm:block">Advanced OSINT Intelligence Platform</p>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center gap-4 text-sm">
-              <span className="text-gray-400">Powered by AI</span>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </header>
+        <Header />
 
-      {/* Main Content */}
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
-        {/* Search Type Selector */}
-        <div className="w-full flex gap-2 mb-4 sm:mb-6 md:mb-8 justify-center">
-          <button
-            onClick={() => setSearchType('username')}
-            className={`flex-1 max-w-[120px] sm:max-w-[150px] px-3 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-lg sm:rounded-xl font-semibold transition-all text-xs sm:text-sm md:text-base whitespace-nowrap ${
-              searchType === 'username'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <FaUser className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden sm:inline">Username</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setSearchType('url')}
-            className={`flex-1 max-w-[120px] sm:max-w-[150px] px-3 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-lg sm:rounded-xl font-semibold transition-all text-xs sm:text-sm md:text-base whitespace-nowrap ${
-              searchType === 'url'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <FaLink className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden sm:inline">URL</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setSearchType('image')}
-            className={`flex-1 max-w-[120px] sm:max-w-[150px] px-3 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-lg sm:rounded-xl font-semibold transition-all text-xs sm:text-sm md:text-base whitespace-nowrap ${
-              searchType === 'image'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <FaImage className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden sm:inline">Image</span>
-            </div>
-          </button>
-        </div>
+        <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
+          <SearchTypeSelector searchType={searchType} setSearchType={setSearchType} />
+          
+          <SearchInput
+            searchType={searchType}
+            username={username}
+            setUsername={setUsername}
+            profileUrl={profileUrl}
+            setProfileUrl={setProfileUrl}
+            image={image}
+            setImage={setImage}
+            imagePreview={imagePreview}
+            setImagePreview={setImagePreview}
+            phone={phone}
+            setPhone={setPhone}
+            ip={ip}
+            setIp={setIp}
+            loading={loading}
+            scanProgress={scanProgress}
+            onSearch={handleSearch}
+          />
 
-        {/* Search Input */}
-        <div className="w-full bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-purple-500/30 max-w-3xl mx-auto">
-          {searchType === 'username' && (
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
-                <span className="flex items-center gap-2">
-                  <FaUser />
-                  <span>Enter Username</span>
-                </span>
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g., john_doe"
-                className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
-              />
-            </div>
-          )}
+          {/* Results */}
+          {phoneData && <PhoneDetails phoneData={phoneData} />}
+          {ipData && <IPDetails ipData={ipData} />}
 
-          {searchType === 'url' && (
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
-                <span className="flex items-center gap-2">
-                  <FaLink />
-                  <span>Enter Profile URL</span>
-                </span>
-              </label>
-              <input
-                type="text"
-                value={profileUrl}
-                onChange={(e) => setProfileUrl(e.target.value)}
-                placeholder="e.g., https://instagram.com/username"
-                className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
-              />
-            </div>
-          )}
+          {results && results.profiles && results.profiles.length > 0 && (
+            <div className="mt-8">
+              <details className="bg-black/30 rounded-2xl p-6 border border-gray-700/50 mb-6">
+                <summary className="cursor-pointer text-sm font-semibold text-gray-200">
+                  📦 Show full API response (raw JSON)
+                </summary>
+                <pre className="mt-4 text-xs whitespace-pre-wrap break-words text-gray-200 max-h-[420px] overflow-auto bg-black/40 p-4 rounded-xl border border-gray-700/60">
+                  {JSON.stringify(results, null, 2)}
+                </pre>
+              </details>
 
-          {searchType === 'image' && (
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
-                <span className="flex items-center gap-2">
-                  <FaImage />
-                  <span>Upload Image</span>
-                </span>
-              </label>
-              
-              {imagePreview && (
-                <div className="mb-4 relative group">
-                  <img src={imagePreview} alt="Preview" className="w-48 h-48 object-cover mx-auto rounded-xl border-2 border-purple-500 shadow-lg" />
-                  <button
-                    onClick={() => {
-                      setImage(null);
-                      setImagePreview(null);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg text-sm hover:bg-red-600 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <FaTimes />
-                  </button>
+              {/* AI Biodata */}
+              {results.aiBiodata && <AIBiodata aiBiodata={results.aiBiodata} />}
+
+              <div className="bg-gradient-to-br from-purple-900/70 to-pink-900/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border-2 border-purple-500/40 mb-6 sm:mb-8 shadow-2xl">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-6">🎯 Investigation Results</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-purple-500/30">
+                    <div className="text-3xl sm:text-5xl font-bold text-purple-400 mb-2">{results.totalFound}</div>
+                    <div className="text-gray-300 text-xs sm:text-sm font-medium">Profiles Found</div>
+                  </div>
                 </div>
-              )}
-              
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    setImage(file);
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => setImagePreview(reader.result);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none transition text-xs sm:text-sm md:text-base file:mr-3 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer file:font-semibold file:text-xs sm:file:text-sm hover:file:bg-purple-700 file:transition"
-                />
               </div>
-              {image && (
-                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-green-400 flex items-center gap-2">
-                  <FaCheckCircle />
-                  <span className="truncate">Selected: {image.name}</span>
-                </p>
-              )}
-              
-              {/* Optional username input for better results */}
-              <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium mb-2 text-blue-300">
-                  <span className="flex items-center gap-2">
-                    <FaUser />
-                    <span>Know the username? (Optional - for better results)</span>
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g., elonmusk"
-                  className="w-full px-3 py-2 bg-gray-900/80 border border-blue-500/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm placeholder-gray-500"
-                />
-                <p className="mt-2 text-xs text-gray-400">💡 Tip: Adding username helps find accurate profiles</p>
+
+              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">📊 Detailed Profiles ({results.totalFound} platforms)</h2>
+              <div className="grid gap-4 sm:gap-6">
+                {results.profiles.map((profile, index) => (
+                  <ProfileCard key={index} profile={profile} />
+                ))}
               </div>
             </div>
           )}
 
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="w-full mt-4 sm:mt-5 md:mt-6 px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30 relative overflow-hidden"
-          >
-            {loading && (
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 animate-pulse"></div>
-            )}
-            {loading ? (
-              <div className="relative z-10 flex flex-col items-center justify-center gap-2">
-                <div className="flex items-center gap-2">
-                  <BiLoaderAlt className="w-5 h-5 animate-spin" />
-                  <BsSearch className="w-4 h-4 animate-bounce" />
-                </div>
-                <span className="text-xs sm:text-sm font-semibold animate-pulse">{scanProgress || 'Searching...'}</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <FaRocket />
-                <span>Start Investigation</span>
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Results */}
-        {results && results.profiles && results.profiles.length > 0 && (
-          <div className="mt-8">
-            {/* Raw API Response (always show everything backend returned) */}
-            <details className="bg-black/30 rounded-2xl p-6 border border-gray-700/50 mb-6">
-              <summary className="cursor-pointer text-sm font-semibold text-gray-200">
-                📦 Show full API response (raw JSON)
-              </summary>
-              <pre className="mt-4 text-xs whitespace-pre-wrap break-words text-gray-200 max-h-[420px] overflow-auto bg-black/40 p-4 rounded-xl border border-gray-700/60">
-                {JSON.stringify(results, null, 2)}
-              </pre>
-            </details>
-
-            {/* AI Biodata Card - For ALL searches */}
-            {results.aiBiodata && results.aiBiodata.success && (
-              <div className="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-blue-500/40 mb-6 shadow-2xl">
-                <h2 className="text-3xl font-bold mb-6 text-center text-blue-400 flex items-center justify-center gap-3">
-                  🤖 AI-Generated Complete Biodata
-                  <span className="text-sm bg-blue-500/20 px-3 py-1 rounded-full">Powered by OpenRouter AI</span>
-                </h2>
-                
-                <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
-                  <div className="flex items-start gap-3 mb-4">
-                    <span className="text-2xl">📋</span>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-blue-300 mb-2">Comprehensive Profile Analysis</h3>
-                      <p className="text-xs text-gray-400 mb-4">Model: {results.aiBiodata.model} | Analyzed {results.totalFound} platforms</p>
-                    </div>
-                  </div>
-                  
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-gray-200 whitespace-pre-wrap leading-relaxed text-sm">
-                      {results.aiBiodata.biodata}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-center text-xs text-gray-400">
-                  ℹ️ AI-generated analysis based on publicly available social media data. Verify information independently.
-                </div>
-              </div>
-            )}
-
-            {/* Face++ API Response - when Face++ used (fallback when Azure not configured) */}
-            {results.facePlusPlus && results.facePlusPlus.success && !results.azureFace?.success && (
-              <div className="bg-gradient-to-br from-amber-900/60 to-orange-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-amber-500/40 mb-6 shadow-2xl">
-                <h2 className="text-2xl font-bold mb-4 text-center text-amber-400">Face++ API (Fallback)</h2>
-                <div className="bg-black/40 rounded-xl p-4 text-sm">
-                  <p><span className="text-gray-400">Status:</span> <span className="text-green-400">Success</span> | <span className="text-gray-400">Face Count:</span> {results.facePlusPlus.faces?.length || 1}</p>
-                  <p className="text-xs text-gray-500 mt-2">Azure Face not configured – Face++ used for detection</p>
-                </div>
-              </div>
-            )}
-
-            {/* Azure Face API Response - Image Search */}
-            {results.azureFace && (
-              <div className="bg-gradient-to-br from-sky-900/60 to-blue-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-sky-500/40 mb-6 shadow-2xl">
-                <h2 className="text-3xl font-bold mb-6 text-center text-sky-400 flex items-center justify-center gap-3">
-                  🔷 Azure Face API Response
-                  <span className={`text-sm px-3 py-1 rounded-full ${results.azureFace.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {results.azureFace.success ? 'Working ✓' : 'Failed'}
-                  </span>
-                </h2>
-                <div className="bg-black/40 rounded-xl p-6 border border-sky-500/30">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-sky-300 mb-3">Detection Result</h3>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-400">Status:</span> <span className={results.azureFace.success ? 'text-green-400' : 'text-red-400'}>{results.azureFace.success ? 'Success' : 'Failed'}</span></p>
-                        <p><span className="text-gray-400">Face Count:</span> <span className="text-white font-semibold">{results.azureFace.faceCount ?? 0}</span></p>
-                        <p><span className="text-gray-400">Model:</span> <span className="text-sky-300">{results.azureFace.detectionModel || 'N/A'}</span></p>
-                        <p><span className="text-gray-400">Message:</span> <span className="text-gray-200">{results.azureFace.message}</span></p>
-                        {results.azureFace.note && <p className="text-xs text-gray-500 mt-2">{results.azureFace.note}</p>}
-                      </div>
-                    </div>
-                    {results.azureFace.faces && results.azureFace.faces.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-bold text-sky-300 mb-3">Face Rectangles (Position)</h3>
-                        <div className="space-y-3">
-                          {results.azureFace.faces.map((face, idx) => (
-                            <div key={idx} className="bg-gray-900/50 rounded-lg p-3 font-mono text-xs">
-                              <p>Face #{idx + 1}: top={face.top || face.faceRectangle?.top}, left={face.left || face.faceRectangle?.left}, width={face.width || face.faceRectangle?.width}, height={face.height || face.faceRectangle?.height}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <details className="mt-4">
-                    <summary className="cursor-pointer text-sm text-gray-400 hover:text-sky-400">📋 Raw Azure Face Response (JSON)</summary>
-                    <pre className="mt-2 text-xs text-gray-300 bg-black/60 p-4 rounded-lg overflow-auto max-h-48">{JSON.stringify(results.azureFace, null, 2)}</pre>
-                  </details>
-                </div>
-              </div>
-            )}
-
-            {/* AI Analysis Card - Only for Image Search */}
-            {results.aiAnalysis && results.aiAnalysis.success && (
-              <div className="bg-gradient-to-br from-green-900/60 to-emerald-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-green-500/40 mb-6 shadow-2xl">
-                <h2 className="text-3xl font-bold mb-6 text-center text-green-400 flex items-center justify-center gap-3">
-                  🔍 AI Image Analysis
-                  <span className="text-sm bg-green-500/20 px-3 py-1 rounded-full">Visual Recognition</span>
-                </h2>
-                
-                <div className="bg-black/40 rounded-xl p-6 border border-green-500/30">
-                  <div className="flex items-start gap-3 mb-4">
-                    <span className="text-2xl">👤</span>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-green-300 mb-2">Person Profile from Image</h3>
-                      <p className="text-xs text-gray-400 mb-4">Model: {results.aiAnalysis.model}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-gray-200 whitespace-pre-wrap leading-relaxed">
-                      {results.aiAnalysis.analysis}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-center text-xs text-gray-400">
-                  ⚠️ AI-generated analysis based on visual information only. May not be 100% accurate.
-                </div>
-              </div>
-            )}
-
-            {/* Summary Card */}
-            <div className="bg-gradient-to-br from-purple-900/70 to-pink-900/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border-2 border-purple-500/40 mb-6 sm:mb-8 shadow-2xl">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h2 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-                  <span className="text-3xl sm:text-4xl">🎯</span>
-                  <span>Investigation Results</span>
-                </h2>
-                <div className="text-xs sm:text-sm text-gray-300 bg-black/30 px-3 sm:px-4 py-2 rounded-full">
-                  {new Date(results.searchedAt).toLocaleString()}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="bg-black/40 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-500/30 hover:border-purple-500/60 transition">
-                  <div className="text-3xl sm:text-5xl font-bold text-purple-400 mb-2">{results.totalFound}</div>
-                  <div className="text-gray-300 text-xs sm:text-sm font-medium">Profiles Found</div>
-                  <div className="text-xs text-gray-500 mt-1 hidden sm:block">Across platforms</div>
-                </div>
-                <div className="bg-black/40 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-green-500/30 hover:border-green-500/60 transition">
-                  <div className="text-3xl sm:text-5xl font-bold text-green-400 mb-2">{results.profiles.filter(p => p.email && p.email !== 'N/A').length}</div>
-                  <div className="text-gray-300 text-xs sm:text-sm font-medium">Emails Found</div>
-                  <div className="text-xs text-gray-500 mt-1 hidden sm:block">Contact info</div>
-                </div>
-                <div className="bg-black/40 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-500/30 hover:border-blue-500/60 transition">
-                  <div className="text-3xl sm:text-5xl font-bold text-blue-400 mb-2">{results.profiles.filter(p => p.location && p.location !== 'N/A').length}</div>
-                  <div className="text-gray-300 text-xs sm:text-sm font-medium">Locations</div>
-                  <div className="text-xs text-gray-500 mt-1 hidden sm:block">Geographic data</div>
-                </div>
-                <div className="bg-black/40 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-yellow-500/30 hover:border-yellow-500/60 transition">
-                  <div className="text-3xl sm:text-5xl font-bold text-yellow-400 mb-2">{results.profiles.filter(p => p.verified || p.isVerified).length}</div>
-                  <div className="text-gray-300 text-xs sm:text-sm font-medium">Verified</div>
-                  <div className="text-xs text-gray-500 mt-1 hidden sm:block">Authentic accounts</div>
-                </div>
-              </div>
-              
-              <div className="mt-6 flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-400 flex-wrap">
-                <span>🔍</span>
-                <span>Searched: <span className="text-purple-400 font-semibold">{searchedLabel}</span></span>
-              </div>
-            </div>
-
-            {/* User Consolidated Information Card */}
-            <div className="bg-gradient-to-br from-indigo-900/60 to-purple-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-yellow-500/40 mb-6 shadow-2xl">
-              <h2 className="text-3xl font-bold mb-6 text-center text-yellow-400">👤 User Complete Information</h2>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Personal Details */}
-                <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30">
-                  <h3 className="text-xl font-bold text-purple-300 mb-4 flex items-center gap-2">
-                    📋 Personal Details
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-400 min-w-[100px]">Username:</span>
-                      <span className="text-white font-semibold">{results.username}</span>
-                    </div>
-                    {results.profiles.find(p => p.fullName && p.fullName !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">Full Name:</span>
-                        <span className="text-white font-semibold">{results.profiles.find(p => p.fullName && p.fullName !== 'N/A')?.fullName}</span>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.email && p.email !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">📧 Email:</span>
-                        <span className="text-green-400 font-semibold break-all">{results.profiles.find(p => p.email && p.email !== 'N/A')?.email}</span>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.phone && p.phone !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">📱 Phone:</span>
-                        <span className="text-green-400 font-semibold">{results.profiles.find(p => p.phone && p.phone !== 'N/A')?.phone}</span>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.location && p.location !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">📍 Location:</span>
-                        <span className="text-blue-400 font-semibold">{results.profiles.find(p => p.location && p.location !== 'N/A')?.location}</span>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.company && p.company !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">🏢 Company:</span>
-                        <span className="text-yellow-400 font-semibold">{results.profiles.find(p => p.company && p.company !== 'N/A')?.company}</span>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.website && p.website !== 'N/A') && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-gray-400 min-w-[100px]">🌐 Website:</span>
-                        <a href={results.profiles.find(p => p.website && p.website !== 'N/A')?.website} target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline break-all">
-                          {results.profiles.find(p => p.website && p.website !== 'N/A')?.website}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Social Media Presence */}
-                <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30">
-                  <h3 className="text-xl font-bold text-purple-300 mb-4 flex items-center gap-2">
-                    🌐 Social Media Presence
-                  </h3>
-                  <div className="space-y-2">
-                    {results.profiles.map((profile, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-gray-900/50 rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{profile.platform === 'YouTube' ? '🎥' : profile.platform === 'Instagram' ? '📸' : profile.platform === 'Twitter' ? '🐦' : profile.platform === 'LinkedIn' ? '💼' : profile.platform === 'GitHub' ? '💻' : profile.platform === 'Reddit' ? '🤖' : profile.platform === 'Telegram' ? '✈️' : profile.platform === 'TikTok' ? '🎵' : '📌'}</span>
-                          <span className="text-white font-semibold">{profile.platform}</span>
-                          {(profile.verified || profile.isVerified) && <span className="text-blue-400">✓</span>}
-                        </div>
-                        <a href={profile.profileUrl} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 text-sm">
-                          View →
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bio/Description */}
-                {results.profiles.find(p => p.bio && p.bio !== 'No bio') && (
-                  <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30 md:col-span-2">
-                    <h3 className="text-xl font-bold text-purple-300 mb-4 flex items-center gap-2">
-                      💬 Bio/Description
-                    </h3>
-                    <p className="text-gray-300 italic leading-relaxed">
-                      "{results.profiles.find(p => p.bio && p.bio !== 'No bio')?.bio}"
-                    </p>
-                  </div>
-                )}
-
-                {/* Statistics Summary */}
-                <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30 md:col-span-2">
-                  <h3 className="text-xl font-bold text-purple-300 mb-4 flex items-center gap-2">
-                    📊 Social Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {results.profiles.reduce((acc, p) => acc + (parseInt(p.followers?.toString().replace(/[^0-9]/g, '')) || 0), 0) > 0 && (
-                      <div className="bg-purple-900/30 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-purple-400">👥</p>
-                        <p className="text-sm text-gray-400 mt-1">Total Followers</p>
-                        <p className="text-white font-semibold">{results.profiles.map(p => p.followers).filter(f => f && f !== 'N/A').join(', ')}</p>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.posts && p.posts !== 'N/A') && (
-                      <div className="bg-pink-900/30 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-pink-400">📸</p>
-                        <p className="text-sm text-gray-400 mt-1">Total Posts</p>
-                        <p className="text-white font-semibold">{results.profiles.map(p => p.posts).filter(f => f && f !== 'N/A').join(', ')}</p>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.subscribers) && (
-                      <div className="bg-red-900/30 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-red-400">🎥</p>
-                        <p className="text-sm text-gray-400 mt-1">Subscribers</p>
-                        <p className="text-white font-semibold">{results.profiles.find(p => p.subscribers)?.subscribers}</p>
-                      </div>
-                    )}
-                    {results.profiles.find(p => p.karma) && (
-                      <div className="bg-orange-900/30 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-orange-400">⭐</p>
-                        <p className="text-sm text-gray-400 mt-1">Reddit Karma</p>
-                        <p className="text-white font-semibold">{results.profiles.find(p => p.karma)?.karma}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Data Sources Section */}
-            {results.additionalDataSources && (
-              <div className="bg-gradient-to-br from-orange-900/60 to-red-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-orange-500/40 mb-6 shadow-2xl">
-                <h2 className="text-3xl font-bold mb-6 text-center text-orange-400">📞 Additional Contact Information</h2>
-                
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Phone Numbers */}
-                  {results.additionalDataSources.enhancedContacts?.phones?.length > 0 && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
-                        📱 Phone Numbers ({results.additionalDataSources.enhancedContacts.phones.length})
-                      </h3>
-                      <div className="max-h-60 overflow-y-auto space-y-2">
-                        {results.additionalDataSources.enhancedContacts.phones.slice(0, 20).map((phone, idx) => (
-                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-green-400 font-mono text-sm">
-                            {phone}
-                          </div>
-                        ))}
-                        {results.additionalDataSources.enhancedContacts.phones.length > 20 && (
-                          <p className="text-xs text-gray-500 text-center mt-2">+ {results.additionalDataSources.enhancedContacts.phones.length - 20} more</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Emails - Scraped */}
-                  {results.additionalDataSources.scrapedEmails?.emails?.length > 0 && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
-                        📧 Scraped Emails ({results.additionalDataSources.scrapedEmails.emails.length})
-                      </h3>
-                      <div className="max-h-60 overflow-y-auto space-y-2">
-                        {results.additionalDataSources.scrapedEmails.emails.map((email, idx) => (
-                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-blue-400 font-mono text-sm break-all">
-                            {email}
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-3">From public sources - verify before use</p>
-                    </div>
-                  )}
-                  {/* Possible Emails (username patterns) */}
-                  {results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0 && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
-                        📧 Possible Emails ({results.additionalDataSources.possibleEmails.possibleEmails.length})
-                      </h3>
-                      <div className="max-h-60 overflow-y-auto space-y-2">
-                        {results.additionalDataSources.possibleEmails.possibleEmails.map((email, idx) => (
-                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-cyan-400 font-mono text-sm break-all">
-                            {email}
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-3">{results.additionalDataSources.possibleEmails.note}</p>
-                    </div>
-                  )}
-                  {/* Scraped Phones */}
-                  {results.additionalDataSources.scrapedPhones?.phones?.length > 0 && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
-                        📱 Scraped Phones ({results.additionalDataSources.scrapedPhones.phones.length})
-                      </h3>
-                      <div className="max-h-60 overflow-y-auto space-y-2">
-                        {results.additionalDataSources.scrapedPhones.phones.slice(0, 30).map((phone, idx) => (
-                          <div key={idx} className="bg-gray-900/50 rounded-lg p-2 text-green-400 font-mono text-sm">
-                            {typeof phone === 'string' ? phone : JSON.stringify(phone)}
-                          </div>
-                        ))}
-                        {results.additionalDataSources.scrapedPhones.phones.length > 30 && (
-                          <p className="text-xs text-gray-500 text-center mt-2">+ {results.additionalDataSources.scrapedPhones.phones.length - 30} more</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Associated Accounts */}
-                {results.advancedInvestigation?.associatedAccounts?.length > 0 && (
-                  <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30 mt-6">
-                    <h3 className="text-xl font-bold text-orange-300 mb-4 flex items-center gap-2">
-                      🔗 Associated Accounts ({results.advancedInvestigation.associatedAccounts.length})
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {results.advancedInvestigation.associatedAccounts.map((account, idx) => (
-                        <div key={idx} className="bg-gray-900/50 rounded-lg p-3 text-center">
-                          <p className="text-purple-400 font-semibold text-sm">@{account.username}</p>
-                          <p className="text-xs text-gray-500 mt-1">{account.platform}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 flex-wrap">
-              <span className="text-2xl sm:text-3xl">📊</span>
-              <span>Detailed Profiles</span>
-              <span className="text-base sm:text-lg text-gray-400">({results.totalFound} platforms)</span>
-            </h2>
-            <div className="grid gap-4 sm:gap-6">
-              {results.profiles.map((profile, index) => (
-                <div
-                  key={index}
-                  className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/30 hover:border-purple-500/60 transition-all hover:shadow-xl hover:shadow-purple-500/20"
-                >
-                  <div className="flex items-start gap-4">
-                    {profile.profilePic && (
-                      <img
-                        src={profile.profilePic}
-                        alt={profile.username}
-                        className="w-20 h-20 rounded-full border-2 border-purple-500"
-                        onError={(e) => e.target.style.display = 'none'}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-2xl font-bold text-purple-400">{profile.platform}</h3>
-                        {(profile.isVerified || profile.verified) && <MdVerified className="text-blue-400 text-xl" />}
-                      </div>
-                      
-                      {/* Username & Full Name */}
-                      <p className="text-lg text-white font-semibold">@{profile.username || profile.channelName}</p>
-                      {profile.fullName && profile.fullName !== 'N/A' && (
-                        <p className="text-gray-300 mt-1">📛 {profile.fullName}</p>
-                      )}
-                      
-                      {/* Bio/Description */}
-                      {(profile.bio && profile.bio !== 'No bio') || profile.description ? (
-                        <p className="text-gray-400 mt-2 text-sm italic line-clamp-3">
-                          "{profile.bio && profile.bio !== 'No bio' ? profile.bio : profile.description}"
-                        </p>
-                      ) : null}
-                      
-                      {/* Contact Information */}
-                      <div className="mt-3 space-y-1 text-sm">
-                        {profile.email && profile.email !== 'N/A' && (
-                          <p className="text-green-400 flex items-center gap-2"><FaEnvelope /> Email: {profile.email}</p>
-                        )}
-                        {profile.phone && profile.phone !== 'N/A' && (
-                          <p className="text-green-400 flex items-center gap-2"><FaPhone /> Phone: {profile.phone}</p>
-                        )}
-                        {profile.location && profile.location !== 'N/A' && (
-                          <p className="text-blue-400 flex items-center gap-2"><FaMapMarkerAlt /> Location: {profile.location}</p>
-                        )}
-                        {profile.company && profile.company !== 'N/A' && (
-                          <p className="text-yellow-400 flex items-center gap-2"><FaBuilding /> Company: {profile.company}</p>
-                        )}
-                        {profile.website && profile.website !== 'N/A' && (
-                          <p className="text-cyan-400 flex items-center gap-2"><FaGlobe /> Website: <a href={profile.website} target="_blank" rel="noopener noreferrer" className="underline">{profile.website}</a></p>
-                        )}
-                      </div>
-
-                      {/* Statistics */}
-                      <div className="flex flex-wrap gap-4 mt-4 text-sm">
-                        {profile.followers && profile.followers !== 'N/A' && profile.followers !== 'Not available' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.followers} followers</span>
-                        )}
-                        {profile.following && profile.following !== 'N/A' && profile.following !== 'Not available' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaArrowRight /> {profile.following} following</span>
-                        )}
-                        {profile.posts && profile.posts !== 'N/A' && profile.posts !== 'Not available' && (
-                          <span className="bg-purple-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaCamera /> {profile.posts} posts</span>
-                        )}
-                        {profile.subscribers && profile.subscribers !== 'N/A' && profile.subscribers !== 'Not available' && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaUsers /> {profile.subscribers} subscribers</span>
-                        )}
-                        {profile.videos && profile.videos !== 'N/A' && profile.videos !== 'Not available' && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaYoutube /> {profile.videos} videos</span>
-                        )}
-                        {profile.views && profile.views !== 'N/A' && profile.views !== 'Not available' && (
-                          <span className="bg-red-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaEye /> {profile.views} views</span>
-                        )}
-                        {profile.karma && profile.karma !== 'N/A' && (
-                          <span className="bg-orange-900/50 px-3 py-1 rounded-full flex items-center gap-1"><FaStar /> {profile.karma} karma</span>
-                        )}
-                        {profile.publicRepos && profile.publicRepos !== 'N/A' && (
-                          <span className="bg-gray-700 px-3 py-1 rounded-full flex items-center gap-1"><FaBox /> {profile.publicRepos} repos</span>
-                        )}
-                      </div>
-
-                      {/* Additional Info */}
-                      {profile.createdAt && profile.createdAt !== 'N/A' && (
-                        <p className="text-gray-500 text-xs mt-3 flex items-center gap-1"><FaCalendar /> Joined: {profile.createdAt}</p>
-                      )}
-                      {profile.message && profile.message !== 'Profile data extracted successfully' && (
-                        <p className="text-blue-400 text-xs mt-1 flex items-center gap-1"><FaInfoCircle /> {profile.message}</p>
-                      )}
-                      {profile.found !== undefined && (
-                        <p className="text-xs mt-1 flex items-center gap-1">
-                          {profile.found ? <span className="text-green-400">✅ Profile exists</span> : <span className="text-red-400">❌ Profile not found</span>}
-                        </p>
-                      )}
-
-                      <a
-                        href={profile.profileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-semibold shadow-lg shadow-purple-500/30"
-                      >
-                        <FaGlobe />
-                        <span>View Profile</span>
-                        <FaArrowRight />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* No Results */}
-        {results && (!results.profiles || results.profiles.length === 0) && (
-          <div className="mt-8">
-            {/* Raw API Response (always show everything backend returned) */}
-            <details className="bg-black/30 rounded-2xl p-6 border border-gray-700/50 mb-6">
-              <summary className="cursor-pointer text-sm font-semibold text-gray-200">
-                📦 Show full API response (raw JSON)
-              </summary>
-              <pre className="mt-4 text-xs whitespace-pre-wrap break-words text-gray-200 max-h-[420px] overflow-auto bg-black/40 p-4 rounded-xl border border-gray-700/60">
-                {JSON.stringify(results, null, 2)}
-              </pre>
-            </details>
-
-            {/* Azure Face API - when no profiles */}
-            {results.azureFace && (
-              <div className="bg-gradient-to-br from-sky-900/70 to-blue-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-sky-500/50 mb-8 shadow-2xl">
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <span>🔷</span> Azure Face API
-                  <span className={`text-xs px-3 py-1 rounded-full ${results.azureFace.success ? 'bg-green-500/20' : 'bg-red-500/20'}`}>{results.azureFace.success ? 'Working ✓' : 'Failed'}</span>
-                </h2>
-                <div className="bg-black/40 rounded-xl p-4 text-sm">
-                  <p><span className="text-gray-400">Face Count:</span> {results.azureFace.faceCount ?? 0} | <span className="text-gray-400">Message:</span> {results.azureFace.message}</p>
-                  <details className="mt-3"><summary className="cursor-pointer text-gray-500">Raw JSON</summary><pre className="mt-2 text-xs overflow-auto max-h-32">{JSON.stringify(results.azureFace, null, 2)}</pre></details>
-                </div>
-              </div>
-            )}
-
-            {/* Show AI Analysis regardless of profiles */}
-            {results.aiAnalysis && results.aiAnalysis.success && (
-              <div className="bg-gradient-to-br from-green-900/70 to-emerald-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-green-500/50 mb-8 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold flex items-center gap-3">
-                    <span className="text-4xl">🔍</span>
-                    <span>AI Image Analysis</span>
-                  </h2>
-                  <span className="text-xs bg-green-500/20 px-4 py-2 rounded-full border border-green-500/30">Visual Recognition</span>
-                </div>
-                <div className="bg-black/40 rounded-xl p-6 border border-green-500/30">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-gray-200 whitespace-pre-wrap leading-relaxed">
-                      {results.aiAnalysis.analysis}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {results.aiBiodata && results.aiBiodata.success && (
-              <div className="bg-gradient-to-br from-blue-900/70 to-indigo-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-blue-500/50 mb-8 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold flex items-center gap-3">
-                    <span className="text-4xl">🤖</span>
-                    <span>AI Biodata</span>
-                  </h2>
-                  <span className="text-xs bg-blue-500/20 px-4 py-2 rounded-full border border-blue-500/30">OpenRouter AI</span>
-                </div>
-                <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-gray-200 whitespace-pre-wrap leading-relaxed text-sm">
-                      {results.aiBiodata.biodata}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Additional contact data even when no profiles */}
-            {results.additionalDataSources && (results.additionalDataSources.enhancedContacts?.phones?.length > 0 || results.additionalDataSources.enhancedContacts?.emails?.length > 0 || results.additionalDataSources.scrapedEmails?.emails?.length > 0 || results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0 || results.additionalDataSources.scrapedPhones?.phones?.length > 0) && (
-              <div className="bg-gradient-to-br from-orange-900/60 to-red-900/60 backdrop-blur-lg rounded-2xl p-8 border-2 border-orange-500/40 mb-8 shadow-2xl">
-                <h2 className="text-2xl font-bold mb-6 text-center text-orange-400">📞 Contact Information Found</h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {results.additionalDataSources.enhancedContacts?.phones?.length > 0 && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-lg font-bold text-orange-300 mb-4">📱 Phones ({results.additionalDataSources.enhancedContacts.phones.length})</h3>
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {results.additionalDataSources.enhancedContacts.phones.slice(0, 15).map((p, i) => (
-                          <div key={i} className="text-green-400 font-mono text-sm">{p}</div>
-                        ))}
-                        {results.additionalDataSources.enhancedContacts.phones.length > 15 && <p className="text-xs text-gray-500">+ {results.additionalDataSources.enhancedContacts.phones.length - 15} more</p>}
-                      </div>
-                    </div>
-                  )}
-                  {(results.additionalDataSources.scrapedEmails?.emails?.length > 0 || results.additionalDataSources.possibleEmails?.possibleEmails?.length > 0) && (
-                    <div className="bg-black/40 rounded-xl p-6 border border-orange-500/30">
-                      <h3 className="text-lg font-bold text-orange-300 mb-4">📧 Emails</h3>
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {(results.additionalDataSources.scrapedEmails?.emails || []).concat(results.additionalDataSources.possibleEmails?.possibleEmails || []).slice(0, 15).map((e, i) => (
-                          <div key={i} className="text-blue-400 font-mono text-sm break-all">{e}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="text-center p-12 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl rounded-3xl border border-gray-700/50">
+          {results && (!results.profiles || results.profiles.length === 0) && (
+            <div className="mt-8 text-center p-12 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl rounded-3xl border border-gray-700/50">
               <div className="text-6xl mb-4">🔍</div>
               <p className="text-2xl font-bold text-gray-300 mb-2">No Social Media Profiles Found</p>
               <p className="text-gray-500">Try a different username or check the console for errors</p>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
