@@ -10,7 +10,8 @@ import PersonalInfo from './components/Results/PersonalInfo';
 import SocialMediaLinks from './components/Results/SocialMediaLinks';
 import FaceSearchResults from './components/Results/FaceSearchResults';
 import SimilarFacesGrid from './components/FaceAnalyzer/SimilarFacesGrid';
-import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP } from './utils/api';
+import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP, analyzeWebsite } from './utils/api';
+import WebsiteAnalyzer from './components/WebsiteAnalyzer/WebsiteAnalyzer';
 import './App.css';
 
 function App() {
@@ -21,9 +22,12 @@ function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [phone, setPhone] = useState('');
   const [ip, setIp] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [showWebsiteAnalyzer, setShowWebsiteAnalyzer] = useState(false);
   const [results, setResults] = useState(null);
   const [phoneData, setPhoneData] = useState(null);
   const [ipData, setIpData] = useState(null);
+  const [websiteData, setWebsiteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
   const [similarFaces, setSimilarFaces] = useState(null);
@@ -38,6 +42,7 @@ function App() {
     setResults(null);
     setPhoneData(null);
     setIpData(null);
+    setWebsiteData(null);
     setScanProgress('');
 
     try {
@@ -95,6 +100,9 @@ function App() {
         setScanProgress('✅ Lookup complete!');
         setLoading(false);
         return;
+      } else if (searchType === 'website') {
+        setShowWebsiteAnalyzer(true);
+        return;
       }
 
       console.log('Final results to display:', responseData);
@@ -141,6 +149,8 @@ function App() {
             setPhone={setPhone}
             ip={ip}
             setIp={setIp}
+            websiteUrl={websiteUrl}
+            setWebsiteUrl={setWebsiteUrl}
             loading={loading}
             scanProgress={scanProgress}
             onSearch={handleSearch}
@@ -156,9 +166,224 @@ function App() {
             />
           )}
 
+          {/* Website Analyzer */}
+          {searchType === 'website' && showWebsiteAnalyzer && (
+            <WebsiteAnalyzer 
+              websiteUrl={websiteUrl}
+              onAnalysisComplete={(data) => {
+                console.log('Analysis complete:', data);
+                setWebsiteData(data);
+                setShowWebsiteAnalyzer(false);
+              }}
+            />
+          )}
+
           {/* Results */}
           {phoneData && <PhoneDetails phoneData={phoneData} />}
           {ipData && <IPDetails ipData={ipData} />}
+          
+          {/* Website Results */}
+          {websiteData && (
+            <div className="mt-8 bg-gradient-to-br from-blue-900/70 to-purple-900/70 backdrop-blur-xl rounded-3xl p-8 border-2 border-blue-500/40 shadow-2xl">
+              <h2 className="text-3xl font-bold mb-6">🌐 Website Intelligence Report</h2>
+              
+              {websiteData.success === false && (
+                <div className="bg-red-900/40 rounded-xl p-6 border border-red-500/30 mb-6">
+                  <h3 className="text-xl font-bold mb-2 text-red-400">❌ Error</h3>
+                  <p className="text-sm text-gray-200">{websiteData.error}</p>
+                </div>
+              )}
+              
+              {websiteData.success && (
+                <div className="grid gap-6">
+                  {/* Basic Info */}
+                  <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                    <h3 className="text-xl font-bold mb-4 text-blue-400">📄 Basic Information</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="text-gray-400">Title:</span> <span className="text-white font-semibold">{websiteData.pageInfo?.title}</span></p>
+                      <p><span className="text-gray-400">URL:</span> <span className="text-blue-300">{websiteData.pageInfo?.url}</span></p>
+                      <p><span className="text-gray-400">Description:</span> <span className="text-gray-200">{websiteData.pageInfo?.description || 'N/A'}</span></p>
+                      <p><span className="text-gray-400">Links:</span> <span className="text-white">{websiteData.pageInfo?.links}</span></p>
+                      <p><span className="text-gray-400">Images:</span> <span className="text-white">{websiteData.pageInfo?.images}</span></p>
+                    </div>
+                  </div>
+
+                  {/* Screenshots */}
+                  {websiteData.screenshots && websiteData.screenshots.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-blue-400">📸 Screenshots ({websiteData.screenshots.length} total)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {websiteData.screenshots.map((screenshot, idx) => (
+                          <div key={idx} className="bg-black/60 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition-all group">
+                            <img 
+                              src={`http://localhost:3000${screenshot.url}`} 
+                              alt={screenshot.description || `Screenshot ${screenshot.position}`}
+                              className="w-full h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
+                              onClick={() => window.open(`http://localhost:3000${screenshot.url}`, '_blank')}
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/ffffff?text=Screenshot+' + screenshot.position;
+                              }}
+                            />
+                            <div className="p-3 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-blue-400">
+                                  {screenshot.pageTitle || `Position: ${screenshot.position}`}
+                                  {screenshot.percentage && ` (${screenshot.percentage}%)`}
+                                </p>
+                              </div>
+                              {screenshot.description && (
+                                <p className="text-xs text-gray-400 line-clamp-2">{screenshot.description}</p>
+                              )}
+                              {screenshot.visibleContent && screenshot.visibleContent.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs font-semibold text-green-400">Visible Content:</p>
+                                  {screenshot.visibleContent.slice(0, 3).map((content, cidx) => (
+                                    <p key={cidx} className="text-xs text-gray-300 truncate">• {content}</p>
+                                  ))}
+                                </div>
+                              )}
+                              {screenshot.pageUrl && (
+                                <p className="text-xs text-purple-400 truncate" title={screenshot.pageUrl}>
+                                  🔗 {screenshot.pageUrl}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact Info */}
+                  {websiteData.contactInfo && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-blue-400">📞 Contact Information</h3>
+                      <div className="space-y-3">
+                        {websiteData.contactInfo.emails?.length > 0 && (
+                          <div>
+                            <p className="text-sm text-gray-400 mb-2 font-semibold">📧 Emails ({websiteData.contactInfo.emails.length}):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {websiteData.contactInfo.emails.map((email, idx) => (
+                                <a key={idx} href={`mailto:${email}`} className="bg-blue-500/20 hover:bg-blue-500/30 px-3 py-1 rounded-full text-xs text-blue-300 transition-all">{email}</a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {websiteData.contactInfo.phones?.length > 0 && (
+                          <div>
+                            <p className="text-sm text-gray-400 mb-2 font-semibold">📱 Phones ({websiteData.contactInfo.phones.length}):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {websiteData.contactInfo.phones.map((phone, idx) => (
+                                <a key={idx} href={`tel:${phone}`} className="bg-green-500/20 hover:bg-green-500/30 px-3 py-1 rounded-full text-xs text-green-300 transition-all">{phone}</a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {websiteData.contactInfo.whatsapp?.length > 0 && (
+                          <div>
+                            <p className="text-sm text-gray-400 mb-2 font-semibold">💬 WhatsApp ({websiteData.contactInfo.whatsapp.length}):</p>
+                            <div className="flex flex-wrap gap-2">
+                              {websiteData.contactInfo.whatsapp.map((wa, idx) => (
+                                <span key={idx} className="bg-green-600/20 px-3 py-1 rounded-full text-xs text-green-400">{wa}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Internal Pages Discovered */}
+                  {websiteData.internalPages && websiteData.internalPages.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-blue-400">🔗 Internal Pages Discovered ({websiteData.internalPages.length})</h3>
+                      <div className="space-y-2">
+                        {websiteData.internalPages.map((page, idx) => (
+                          <a key={idx} href={page} target="_blank" rel="noopener noreferrer" 
+                             className="block bg-black/60 hover:bg-black/80 px-4 py-2 rounded-lg text-sm text-blue-300 hover:text-blue-200 transition-all truncate">
+                            {idx + 1}. {page}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Social Media */}
+                  {websiteData.socialMedia && Object.values(websiteData.socialMedia).some(v => v) && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-blue-400">🔗 Social Media Links</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(websiteData.socialMedia).map(([platform, url]) => url && (
+                          <a key={platform} href={url} target="_blank" rel="noopener noreferrer" 
+                             className="bg-purple-500/20 hover:bg-purple-500/30 px-4 py-2 rounded-lg text-sm text-purple-300 transition-all">
+                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Analysis */}
+                  {websiteData.aiAnalysis?.success && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-purple-400">🤖 AI Analysis</h3>
+                      <div className="space-y-4">
+                        {(() => {
+                          try {
+                            const analysis = JSON.parse(websiteData.aiAnalysis.analysis);
+                            return (
+                              <>
+                                <div className="bg-black/60 rounded-lg p-4">
+                                  <h4 className="text-sm font-bold text-blue-400 mb-2">Purpose</h4>
+                                  <p className="text-sm text-gray-200">{analysis.purpose}</p>
+                                </div>
+                                <div className="bg-black/60 rounded-lg p-4">
+                                  <h4 className="text-sm font-bold text-green-400 mb-2">Business Type</h4>
+                                  <p className="text-sm text-gray-200">{analysis.businessType}</p>
+                                </div>
+                                <div className="bg-black/60 rounded-lg p-4">
+                                  <h4 className="text-sm font-bold text-yellow-400 mb-2">Target Audience</h4>
+                                  <p className="text-sm text-gray-200">{analysis.targetAudience}</p>
+                                </div>
+                                {analysis.keyFeatures && (
+                                  <div className="bg-black/60 rounded-lg p-4">
+                                    <h4 className="text-sm font-bold text-pink-400 mb-2">Key Features</h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {analysis.keyFeatures.map((feature, idx) => (
+                                        <li key={idx} className="text-sm text-gray-200">{feature}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                <div className="bg-black/60 rounded-lg p-4">
+                                  <h4 className="text-sm font-bold text-purple-400 mb-2">Assessment</h4>
+                                  <p className="text-sm text-gray-200">{analysis.assessment}</p>
+                                </div>
+                              </>
+                            );
+                          } catch (e) {
+                            return <pre className="text-sm text-gray-200 whitespace-pre-wrap">{websiteData.aiAnalysis.analysis}</pre>;
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Technologies */}
+                  {websiteData.technologies?.length > 0 && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-blue-400">⚙️ Technologies Detected</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {websiteData.technologies.map((tech, idx) => (
+                          <span key={idx} className="bg-orange-500/20 px-3 py-1 rounded-full text-xs text-orange-300">{tech}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* FaceCheck.id Results */}
           {results && results.faceCheckResults && (

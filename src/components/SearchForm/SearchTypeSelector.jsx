@@ -1,5 +1,6 @@
 import { FaUser, FaLink, FaImage, FaPhone } from 'react-icons/fa';
 import { MdLocationOn } from 'react-icons/md';
+import { HiGlobeAlt } from 'react-icons/hi';
 
 export default function SearchTypeSelector({ searchType, setSearchType }) {
   const types = [
@@ -7,7 +8,8 @@ export default function SearchTypeSelector({ searchType, setSearchType }) {
     { id: 'url', icon: FaLink, label: 'URL' },
     { id: 'image', icon: FaImage, label: 'Image' },
     { id: 'phone', icon: FaPhone, label: 'Phone' },
-    { id: 'ip', icon: MdLocationOn, label: 'IP' }
+    { id: 'ip', icon: MdLocationOn, label: 'IP' },
+    { id: 'website', icon: HiGlobeAlt, label: 'Website' }
   ];
 
   return (

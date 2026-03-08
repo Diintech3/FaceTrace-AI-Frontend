@@ -101,3 +101,22 @@ export const lookupIP = async (ip) => {
   
   return response.json();
 };
+
+export const analyzeWebsite = async (url) => {
+  if (!url || !url.trim()) {
+    throw new Error('Website URL is required');
+  }
+
+  const response = await fetch(`${API_URL}/api/search/website`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: url.trim() })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Website analysis failed');
+  }
+  
+  return response.json();
+};

@@ -16,6 +16,8 @@ export default function SearchInput({
   setPhone,
   ip,
   setIp,
+  websiteUrl,
+  setWebsiteUrl,
   loading,
   scanProgress,
   onSearch 
@@ -200,6 +202,30 @@ export default function SearchInput({
             className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
           />
           <p className="mt-2 text-xs text-gray-400">💡 Enter IPv4 address to get geolocation details</p>
+        </div>
+      )}
+
+      {searchType === 'website' && (
+        <div>
+          <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
+            <span className="flex items-center gap-2">
+              <span>🌐</span>
+              <span>Enter Website URL</span>
+            </span>
+          </label>
+          <input
+            type="text"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="e.g., https://example.com"
+            className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
+          />
+          <div className="mt-4 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl">
+            <p className="text-xs sm:text-sm text-gray-300 flex items-start gap-2">
+              <span className="text-blue-400 text-lg">🤖</span>
+              <span>AI will auto-scroll, capture screenshots, extract contact info, detect technologies, and analyze the website content.</span>
+            </p>
+          </div>
         </div>
       )}
 
