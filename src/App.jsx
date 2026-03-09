@@ -324,45 +324,109 @@ function App() {
                   )}
 
                   {/* AI Analysis */}
-                  {websiteData.aiAnalysis?.success && (
+                  {websiteData.aiAnalysis?.success && websiteData.aiAnalysis.analysis && (
                     <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30">
                       <h3 className="text-xl font-bold mb-4 text-purple-400">🤖 AI Analysis</h3>
                       <div className="space-y-4">
                         {(() => {
                           try {
-                            const analysis = JSON.parse(websiteData.aiAnalysis.analysis);
+                            let jsonStr = websiteData.aiAnalysis.analysis;
+                            jsonStr = jsonStr.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+                            jsonStr = jsonStr.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+                            if (jsonMatch) jsonStr = jsonMatch[0];
+                            const analysis = JSON.parse(jsonStr);
+                            
                             return (
                               <>
-                                <div className="bg-black/60 rounded-lg p-4">
-                                  <h4 className="text-sm font-bold text-blue-400 mb-2">Purpose</h4>
-                                  <p className="text-sm text-gray-200">{analysis.purpose}</p>
-                                </div>
-                                <div className="bg-black/60 rounded-lg p-4">
-                                  <h4 className="text-sm font-bold text-green-400 mb-2">Business Type</h4>
-                                  <p className="text-sm text-gray-200">{analysis.businessType}</p>
-                                </div>
-                                <div className="bg-black/60 rounded-lg p-4">
-                                  <h4 className="text-sm font-bold text-yellow-400 mb-2">Target Audience</h4>
-                                  <p className="text-sm text-gray-200">{analysis.targetAudience}</p>
-                                </div>
-                                {analysis.keyFeatures && (
-                                  <div className="bg-black/60 rounded-lg p-4">
-                                    <h4 className="text-sm font-bold text-pink-400 mb-2">Key Features</h4>
-                                    <ul className="list-disc list-inside space-y-1">
-                                      {analysis.keyFeatures.map((feature, idx) => (
-                                        <li key={idx} className="text-sm text-gray-200">{feature}</li>
-                                      ))}
-                                    </ul>
+                                {analysis.executiveSummary && (
+                                  <div className="bg-gradient-to-r from-cyan-900/40 to-blue-900/40 rounded-lg p-5 border border-cyan-500/20">
+                                    <h4 className="text-base font-bold text-cyan-300 mb-3 flex items-center gap-2"><span>📊</span> Executive Summary</h4>
+                                    <p className="text-sm text-gray-100 leading-relaxed">{analysis.executiveSummary}</p>
                                   </div>
                                 )}
-                                <div className="bg-black/60 rounded-lg p-4">
-                                  <h4 className="text-sm font-bold text-purple-400 mb-2">Assessment</h4>
-                                  <p className="text-sm text-gray-200">{analysis.assessment}</p>
-                                </div>
+                                
+                                {analysis.websiteDetails && (
+                                  <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-lg p-5 border border-blue-500/20">
+                                    <h4 className="text-base font-bold text-blue-300 mb-3 flex items-center gap-2"><span>🌐</span> Website Details</h4>
+                                    <div className="space-y-3 text-sm">
+                                      {analysis.websiteDetails.purpose && <div><p className="text-gray-400 font-semibold mb-1">Purpose:</p><p className="text-gray-100 leading-relaxed">{analysis.websiteDetails.purpose}</p></div>}
+                                      {analysis.websiteDetails.businessType && <div><p className="text-gray-400 font-semibold mb-1">Business Type:</p><p className="text-gray-100">{analysis.websiteDetails.businessType}</p></div>}
+                                      {analysis.websiteDetails.industry && <div><p className="text-gray-400 font-semibold mb-1">Industry:</p><p className="text-gray-100">{analysis.websiteDetails.industry}</p></div>}
+                                      {analysis.websiteDetails.targetAudience && <div><p className="text-gray-400 font-semibold mb-1">Target Audience:</p><p className="text-gray-100 leading-relaxed">{analysis.websiteDetails.targetAudience}</p></div>}
+                                      {analysis.websiteDetails.mainServices?.length > 0 && <div><p className="text-gray-400 font-semibold mb-2">Main Services:</p><ul className="list-disc list-inside space-y-1 text-gray-100">{analysis.websiteDetails.mainServices.map((s, i) => <li key={i}>{s}</li>)}</ul></div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {analysis.keyFeatures?.length > 0 && (
+                                  <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 rounded-lg p-5 border border-green-500/20">
+                                    <h4 className="text-base font-bold text-green-300 mb-3 flex items-center gap-2"><span>✨</span> Key Features</h4>
+                                    <ul className="space-y-2">{analysis.keyFeatures.map((f, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-100"><span className="text-green-400 mt-0.5">▸</span><span className="leading-relaxed">{f}</span></li>)}</ul>
+                                  </div>
+                                )}
+                                
+                                {analysis.contentAnalysis && (
+                                  <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 rounded-lg p-5 border border-indigo-500/20">
+                                    <h4 className="text-base font-bold text-indigo-300 mb-3 flex items-center gap-2"><span>📝</span> Content Analysis</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                      {analysis.contentAnalysis.quality && <div><p className="text-gray-400 font-semibold">Quality:</p><p className="text-gray-100">{analysis.contentAnalysis.quality}</p></div>}
+                                      {analysis.contentAnalysis.professionalism && <div><p className="text-gray-400 font-semibold">Professionalism:</p><p className="text-gray-100">{analysis.contentAnalysis.professionalism}</p></div>}
+                                      {analysis.contentAnalysis.completeness && <div><p className="text-gray-400 font-semibold">Completeness:</p><p className="text-gray-100">{analysis.contentAnalysis.completeness}</p></div>}
+                                      {analysis.contentAnalysis.userExperience && <div><p className="text-gray-400 font-semibold">User Experience:</p><p className="text-gray-100">{analysis.contentAnalysis.userExperience}</p></div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {analysis.trustAndCredibility && (
+                                  <div className="bg-gradient-to-r from-yellow-900/40 to-orange-900/40 rounded-lg p-5 border border-yellow-500/20">
+                                    <h4 className="text-base font-bold text-yellow-300 mb-3 flex items-center gap-2"><span>🛡️</span> Trust & Credibility</h4>
+                                    <div className="space-y-3 text-sm">
+                                      {analysis.trustAndCredibility.trustScore && <div className="bg-black/30 rounded-lg p-3"><p className="text-gray-400 font-semibold mb-1">Trust Score:</p><p className="text-white font-bold text-lg">{analysis.trustAndCredibility.trustScore}</p></div>}
+                                      {analysis.trustAndCredibility.contactability && <div><p className="text-gray-400 font-semibold mb-1">Contactability:</p><p className="text-gray-100">{analysis.trustAndCredibility.contactability}</p></div>}
+                                      {analysis.trustAndCredibility.positiveSignals?.length > 0 && <div><p className="text-green-400 font-semibold mb-2">✓ Positive Signals:</p><ul className="space-y-1 text-gray-100">{analysis.trustAndCredibility.positiveSignals.map((s, i) => <li key={i} className="flex items-start gap-2"><span className="text-green-400">•</span><span>{s}</span></li>)}</ul></div>}
+                                      {analysis.trustAndCredibility.negativeSignals?.length > 0 && <div><p className="text-red-400 font-semibold mb-2">⚠ Negative Signals:</p><ul className="space-y-1 text-gray-100">{analysis.trustAndCredibility.negativeSignals.map((s, i) => <li key={i} className="flex items-start gap-2"><span className="text-red-400">•</span><span>{s}</span></li>)}</ul></div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {analysis.technicalAssessment && (
+                                  <div className="bg-gradient-to-r from-orange-900/40 to-red-900/40 rounded-lg p-5 border border-orange-500/20">
+                                    <h4 className="text-base font-bold text-orange-300 mb-3 flex items-center gap-2"><span>⚙️</span> Technical Assessment</h4>
+                                    <div className="space-y-3 text-sm">
+                                      {analysis.technicalAssessment.technologyStack && <div><p className="text-gray-400 font-semibold mb-1">Technology Stack:</p><p className="text-gray-100 leading-relaxed">{analysis.technicalAssessment.technologyStack}</p></div>}
+                                      {analysis.technicalAssessment.modernization && <div><p className="text-gray-400 font-semibold mb-1">Modernization:</p><p className="text-gray-100 leading-relaxed">{analysis.technicalAssessment.modernization}</p></div>}
+                                      {analysis.technicalAssessment.performance && <div><p className="text-gray-400 font-semibold mb-1">Performance:</p><p className="text-gray-100">{analysis.technicalAssessment.performance}</p></div>}
+                                      {analysis.technicalAssessment.seoOptimization && <div><p className="text-gray-400 font-semibold mb-1">SEO:</p><p className="text-gray-100">{analysis.technicalAssessment.seoOptimization}</p></div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {analysis.recommendations?.length > 0 && (
+                                  <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-lg p-5 border border-purple-500/20">
+                                    <h4 className="text-base font-bold text-purple-300 mb-3 flex items-center gap-2"><span>💡</span> Recommendations</h4>
+                                    <ul className="space-y-2">{analysis.recommendations.map((r, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-100"><span className="text-purple-400 mt-0.5">{i+1}.</span><span className="leading-relaxed">{r}</span></li>)}</ul>
+                                  </div>
+                                )}
+                                
+                                {analysis.overallAssessment && (
+                                  <div className="bg-gradient-to-r from-pink-900/40 to-rose-900/40 rounded-lg p-5 border border-pink-500/20">
+                                    <h4 className="text-base font-bold text-pink-300 mb-3 flex items-center gap-2"><span>🎯</span> Overall Assessment</h4>
+                                    <p className="text-sm text-gray-100 leading-relaxed">{analysis.overallAssessment}</p>
+                                  </div>
+                                )}
+                                
+                                {analysis.redFlags?.length > 0 && (
+                                  <div className="bg-gradient-to-r from-red-900/40 to-rose-900/40 rounded-lg p-5 border border-red-500/30">
+                                    <h4 className="text-base font-bold text-red-300 mb-3 flex items-center gap-2"><span>🚩</span> Red Flags</h4>
+                                    <ul className="space-y-2">{analysis.redFlags.map((f, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-100"><span className="text-red-400 mt-0.5">⚠</span><span className="leading-relaxed">{f}</span></li>)}</ul>
+                                  </div>
+                                )}
                               </>
                             );
                           } catch (e) {
-                            return <pre className="text-sm text-gray-200 whitespace-pre-wrap">{websiteData.aiAnalysis.analysis}</pre>;
+                            console.error('JSON parse error:', e);
+                            return <div className="bg-black/60 rounded-lg p-4"><pre className="text-sm text-gray-200 whitespace-pre-wrap">{websiteData.aiAnalysis.analysis}</pre></div>;
                           }
                         })()}
                       </div>
@@ -370,13 +434,95 @@ function App() {
                   )}
 
                   {/* Technologies */}
-                  {websiteData.technologies?.length > 0 && (
+                  {websiteData.technologies && Array.isArray(websiteData.technologies) && websiteData.technologies.length > 0 && (
                     <div className="bg-black/40 rounded-xl p-6 border border-blue-500/30">
                       <h3 className="text-xl font-bold mb-4 text-blue-400">⚙️ Technologies Detected</h3>
                       <div className="flex flex-wrap gap-2">
                         {websiteData.technologies.map((tech, idx) => (
                           <span key={idx} className="bg-orange-500/20 px-3 py-1 rounded-full text-xs text-orange-300">{tech}</span>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Domain Information */}
+                  {websiteData.domainInfo && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-green-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-green-400">🌍 Domain Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-400">Domain:</p>
+                          <p className="text-white font-semibold">{websiteData.domainInfo.domain}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Registrar:</p>
+                          <p className="text-white">{websiteData.domainInfo.registrar}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Created:</p>
+                          <p className="text-white">{websiteData.domainInfo.createdDate}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Expires:</p>
+                          <p className="text-white">{websiteData.domainInfo.expiryDate}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Updated:</p>
+                          <p className="text-white">{websiteData.domainInfo.updatedDate}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Country:</p>
+                          <p className="text-white">{websiteData.domainInfo.registrantCountry}</p>
+                        </div>
+                        {websiteData.domainInfo.registrantName !== 'Unknown' && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-400">Registrant:</p>
+                            <p className="text-white">{websiteData.domainInfo.registrantName} ({websiteData.domainInfo.registrantOrg})</p>
+                          </div>
+                        )}
+                        {websiteData.domainInfo.registrantEmail !== 'Unknown' && (
+                          <div>
+                            <p className="text-gray-400">Registrant Email:</p>
+                            <p className="text-white">{websiteData.domainInfo.registrantEmail}</p>
+                          </div>
+                        )}
+                        {websiteData.domainInfo.registrantPhone !== 'Unknown' && (
+                          <div>
+                            <p className="text-gray-400">Registrant Phone:</p>
+                            <p className="text-white">{websiteData.domainInfo.registrantPhone}</p>
+                          </div>
+                        )}
+                        {websiteData.domainInfo.nameServers?.length > 0 && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-400 mb-2">Name Servers:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {websiteData.domainInfo.nameServers.map((ns, idx) => (
+                                <span key={idx} className="bg-green-500/20 px-3 py-1 rounded-full text-xs text-green-300">{ns}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Server Information */}
+                  {websiteData.serverInfo && (
+                    <div className="bg-black/40 rounded-xl p-6 border border-yellow-500/30">
+                      <h3 className="text-xl font-bold mb-4 text-yellow-400">🖥️ Server Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-400">Server:</p>
+                          <p className="text-white font-semibold">{websiteData.serverInfo.server}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Powered By:</p>
+                          <p className="text-white">{websiteData.serverInfo.poweredBy}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-gray-400">Content Type:</p>
+                          <p className="text-white">{websiteData.serverInfo.contentType}</p>
+                        </div>
                       </div>
                     </div>
                   )}
