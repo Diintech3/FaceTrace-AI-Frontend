@@ -220,8 +220,14 @@ function App() {
                               alt={screenshot.description || `Screenshot ${screenshot.position}`}
                               className="w-full h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
                               onClick={() => window.open(getImageUrl(screenshot.url), '_blank')}
+                              onLoad={() => console.log('✅ Image loaded:', getImageUrl(screenshot.url))}
                               onError={(e) => {
-                                e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/ffffff?text=Screenshot+' + screenshot.position;
+                                console.error('❌ Image failed:', getImageUrl(screenshot.url));
+                                e.target.style.display = 'none';
+                                const parent = e.target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<div class="flex items-center justify-center h-48 bg-gray-800 text-gray-400 text-sm rounded">Screenshot unavailable</div>';
+                                }
                               }}
                             />
                             <div className="p-3 space-y-1">
