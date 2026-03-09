@@ -10,7 +10,7 @@ import PersonalInfo from './components/Results/PersonalInfo';
 import SocialMediaLinks from './components/Results/SocialMediaLinks';
 import FaceSearchResults from './components/Results/FaceSearchResults';
 import SimilarFacesGrid from './components/FaceAnalyzer/SimilarFacesGrid';
-import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP, analyzeWebsite } from './utils/api';
+import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP, analyzeWebsite, getImageUrl } from './utils/api';
 import WebsiteAnalyzer from './components/WebsiteAnalyzer/WebsiteAnalyzer';
 import './App.css';
 
@@ -216,10 +216,10 @@ function App() {
                         {websiteData.screenshots.map((screenshot, idx) => (
                           <div key={idx} className="bg-black/60 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition-all group">
                             <img 
-                              src={`http://localhost:3000${screenshot.url}`} 
+                              src={getImageUrl(screenshot.url)} 
                               alt={screenshot.description || `Screenshot ${screenshot.position}`}
                               className="w-full h-48 object-cover cursor-pointer hover:scale-105 transition-transform"
-                              onClick={() => window.open(`http://localhost:3000${screenshot.url}`, '_blank')}
+                              onClick={() => window.open(getImageUrl(screenshot.url), '_blank')}
                               onError={(e) => {
                                 e.target.src = 'https://via.placeholder.com/400x300/1a1a2e/ffffff?text=Screenshot+' + screenshot.position;
                               }}
@@ -324,13 +324,26 @@ function App() {
                   )}
 
                   {/* AI Analysis */}
-                  {websiteData.aiAnalysis?.success && websiteData.aiAnalysis.analysis && (
+                  {websiteData.aiAnalysis && (websiteData.aiAnalysis.success || websiteData.aiAnalysis.fallbackAnalysis) && (
                     <div className="bg-black/40 rounded-xl p-6 border border-purple-500/30">
-                      <h3 className="text-xl font-bold mb-4 text-purple-400">🤖 AI Analysis</h3>
+                      <h3 className="text-xl font-bold mb-4 text-purple-400">🤖 AI Analysis {!websiteData.aiAnalysis.success && '(Basic)'}</h3>
+                      
+                      {!websiteData.aiAnalysis.success && websiteData.aiAnalysis.error && (
+                        <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-500/30 mb-4">
+                          <p className="text-sm text-yellow-300 flex items-start gap-2">
+                            <span className="text-lg">⚠️</span>
+                            <span><strong>AI Analysis Unavailable:</strong> {websiteData.aiAnalysis.error}</span>
+                          </p>
+                          <p className="text-xs text-gray-400 mt-2">Showing basic automated analysis instead.</p>
+                        </div>
+                      )}
+                      
                       <div className="space-y-4">
                         {(() => {
                           try {
-                            let jsonStr = websiteData.aiAnalysis.analysis;
+                            let jsonStr = websiteData.aiAnalysis.analysis || websiteData.aiAnalysis.fallbackAnalysis;
+                            if (!jsonStr) return <p className="text-gray-400">No analysis available</p>;
+                            
                             jsonStr = jsonStr.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
                             jsonStr = jsonStr.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
                             const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
@@ -422,11 +435,16 @@ function App() {
                                     <ul className="space-y-2">{analysis.redFlags.map((f, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-100"><span className="text-red-400 mt-0.5">⚠</span><span className="leading-relaxed">{f}</span></li>)}</ul>
                                   </div>
                                 )}
+                                {analysis.note && (
+                                  <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-500/20">
+                                    <p className="text-xs text-blue-300">📌 {analysis.note}</p>
+                                  </div>
+                                )}
                               </>
                             );
                           } catch (e) {
                             console.error('JSON parse error:', e);
-                            return <div className="bg-black/60 rounded-lg p-4"><pre className="text-sm text-gray-200 whitespace-pre-wrap">{websiteData.aiAnalysis.analysis}</pre></div>;
+                            return <div className="bg-black/60 rounded-lg p-4"><pre className="text-sm text-gray-200 whitespace-pre-wrap">{websiteData.aiAnalysis.analysis || websiteData.aiAnalysis.fallbackAnalysis || 'Analysis unavailable'}</pre></div>;
                           }
                         })()}
                       </div>

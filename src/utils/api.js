@@ -1,5 +1,14 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Helper to get proper image URL based on environment
+export const getImageUrl = (path) => {
+  if (!path) return '';
+  // If already full URL, return as is
+  if (path.startsWith('http')) return path;
+  // Otherwise, prepend API URL
+  return `${API_URL}${path}`;
+};
+
 export const searchByUsername = async (username) => {
   if (!username || !username.trim()) {
     throw new Error('Username is required');
