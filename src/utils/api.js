@@ -14,20 +14,33 @@ export const searchByUsername = async (username) => {
     throw new Error('Username is required');
   }
 
-  const response = await fetch(`${API_URL}/api/search/username`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: username.trim() })
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Search failed');
+  try {
+    const response = await fetch(`${API_URL}/api/search/username`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.trim() })
+    });
+    
+    if (!response.ok) {
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        throw new Error(error.error || 'Search failed');
+      } else {
+        throw new Error(`Backend API not reachable. Status: ${response.status}`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log('API Response:', data);
+    return data;
+  } catch (error) {
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Backend server is not running. Please start the backend server.');
+    }
+    throw error;
   }
-  
-  const data = await response.json();
-  console.log('API Response:', data);
-  return data;
 };
 
 export const searchByUrl = async (url) => {
@@ -35,18 +48,30 @@ export const searchByUrl = async (url) => {
     throw new Error('URL is required');
   }
 
-  const response = await fetch(`${API_URL}/api/social/extract-url`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: url.trim() })
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to extract data');
+  try {
+    const response = await fetch(`${API_URL}/api/social/extract-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.trim() })
+    });
+    
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to extract data');
+      } else {
+        throw new Error(`Backend API not reachable. Status: ${response.status}`);
+      }
+    }
+    
+    return response.json();
+  } catch (error) {
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Backend server is not running. Please start the backend server.');
+    }
+    throw error;
   }
-  
-  return response.json();
 };
 
 export const searchByImage = async (image, username) => {
