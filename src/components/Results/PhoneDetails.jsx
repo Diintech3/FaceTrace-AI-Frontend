@@ -24,101 +24,12 @@ const PhoneDetails = ({ phoneData }) => {
         <div className="text-gray-300">Validated on {new Date().toLocaleString()}</div>
       </div>
 
-      {/* Owner Information (if available from TrueCaller) */}
-      {phoneData.truecallerFound && phoneData.ownerName && (
-        <div className="bg-gradient-to-br from-yellow-900/50 to-orange-900/50 backdrop-blur-xl rounded-2xl p-6 border border-yellow-500/30">
-          <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-            👤 Owner Information (TrueCaller)
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-black/30 rounded-xl p-5 border border-yellow-500/20">
-              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Owner Name</div>
-              <div className="text-xl font-bold text-white">{phoneData.ownerName}</div>
-            </div>
-            <div className="bg-black/30 rounded-xl p-5 border border-yellow-500/20">
-              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Owner Location</div>
-              <div className="text-lg font-bold text-white">{phoneData.ownerLocation || 'Not Available'}</div>
-            </div>
-            <div className="bg-black/30 rounded-xl p-5 border border-yellow-500/20">
-              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Spam Score</div>
-              <div className="text-lg font-bold text-white">{phoneData.spamScore}/100</div>
-            </div>
-            <div className="bg-black/30 rounded-xl p-5 border border-yellow-500/20">
-              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">TrueCaller Verified</div>
-              <div className="text-lg font-bold text-white">{phoneData.verified ? '✅ Yes' : '❌ No'}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!phoneData.truecallerFound && (
+      {phoneData.notes?.length > 0 && (
         <div className="bg-yellow-900/30 backdrop-blur-xl rounded-2xl p-6 border border-yellow-500/40">
-          <h4 className="text-lg font-bold text-yellow-400 mb-2">⚠️ Owner Details Not Available</h4>
-          <p className="text-gray-300 mb-4">This number is not registered in TrueCaller database. Showing alternative data sources below.</p>
-        </div>
-      )}
-
-      {/* Social Media Links */}
-      {phoneData.socialMedia && phoneData.socialMedia.length > 0 && (
-        <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/30">
-          <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-            📱 Social Media & Public Data
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {phoneData.socialMedia.map((social, idx) => (
-              <div key={idx}>
-                {social.link ? (
-                  <a
-                    href={social.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-black/30 rounded-xl p-4 border border-purple-500/20 hover:border-purple-500/50 transition flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="text-sm text-gray-400">{social.platform}</div>
-                      <div className="text-white font-semibold">{social.status}</div>
-                    </div>
-                    <span className="text-purple-400">→</span>
-                  </a>
-                ) : (
-                  <div className="bg-black/30 rounded-xl p-4 border border-green-500/30">
-                    <div className="text-sm text-green-400 mb-1">{social.platform}</div>
-                    {social.name && (
-                      <div className="text-white font-bold mb-1">👤 {social.name}</div>
-                    )}
-                    {social.location && (
-                      <div className="text-gray-300 text-sm">📍 {social.location}</div>
-                    )}
-                    <div className="text-xs text-green-400 mt-2">✅ {social.status}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Google Search Results */}
-      {phoneData.googleResults && phoneData.googleResults.length > 0 && (
-        <div className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 backdrop-blur-xl rounded-2xl p-6 border border-blue-500/30">
-          <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
-            🔍 Google Search Results
-          </h4>
-          <div className="space-y-3">
-            {phoneData.googleResults.map((result, idx) => (
-              <a
-                key={idx}
-                href={result.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block bg-black/30 rounded-xl p-4 border border-blue-500/20 hover:border-blue-500/50 transition"
-              >
-                <div className="text-blue-400 font-semibold mb-1">{result.title}</div>
-                <div className="text-gray-400 text-sm mb-2">{result.snippet}</div>
-                <div className="text-xs text-gray-500">{result.link}</div>
-              </a>
-            ))}
-          </div>
+          <h4 className="text-lg font-bold text-yellow-400 mb-2">⚠️ Notes</h4>
+          <ul className="text-gray-300 text-sm space-y-1">
+            {phoneData.notes.map((n, idx) => <li key={idx}>- {n}</li>)}
+          </ul>
         </div>
       )}
 

@@ -14,6 +14,8 @@ import { searchByUsername, searchByUrl, searchByImage, validatePhone, lookupIP, 
 import WebsiteAnalyzer from './components/WebsiteAnalyzer/WebsiteAnalyzer';
 import './App.css';
 
+
+
 function App() {
   const [searchType, setSearchType] = useState('username');
   const [username, setUsername] = useState('');
@@ -38,6 +40,8 @@ function App() {
   };
 
   const handleSearch = async () => {
+    if (loading) return; // Prevent duplicate calls
+    
     setLoading(true);
     setResults(null);
     setPhoneData(null);
@@ -119,13 +123,24 @@ function App() {
 
   return (
     <div className="min-h-screen w-full relative bg-slate-950 text-white overflow-x-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute top-0 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-0 -right-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/50 to-slate-950"></div>
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px] animate-grid"></div>
+      {/* Animated Background with optional video */}
+      <div className="fixed inset-0 z-0 overflow-hidden">
+        <video
+          className="w-full h-full object-cover opacity-60"
+          src="/Hero_vedio.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        {/* Color overlays and subtle motion */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-0 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
+          <div className="absolute top-0 -right-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-40 left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/50 via-purple-950/30 to-slate-950/50"></div>
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px] animate-grid"></div>
+        </div>
       </div>
 
       {/* Content */}

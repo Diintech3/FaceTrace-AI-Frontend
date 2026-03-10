@@ -29,16 +29,19 @@ export default function SearchInput({
           <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
             <span className="flex items-center gap-2">
               <FaUser />
-              <span>Enter Username</span>
+              <span>Search by username</span>
             </span>
           </label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g., john_doe"
+            placeholder="e.g., vijay.wiz, elonmusk"
             className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
           />
+          <p className="mt-2 text-[11px] sm:text-xs text-gray-400">
+            We will scan Instagram, Twitter/X, Facebook, LinkedIn, YouTube, Telegram, Pinterest and more for this handle.
+          </p>
         </div>
       )}
 
@@ -47,7 +50,7 @@ export default function SearchInput({
           <label className="block text-xs sm:text-sm md:text-base font-medium mb-2 sm:mb-3 text-gray-200">
             <span className="flex items-center gap-2">
               <FaLink />
-              <span>Enter Profile URL</span>
+              <span>Search by profile URL</span>
             </span>
           </label>
           <input
@@ -57,6 +60,9 @@ export default function SearchInput({
             placeholder="e.g., https://instagram.com/username"
             className="w-full max-w-full px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 bg-gray-900/80 border-2 border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition text-sm sm:text-base md:text-lg placeholder-gray-500"
           />
+          <p className="mt-2 text-[11px] sm:text-xs text-gray-400">
+            Paste a public Instagram, Twitter, Facebook, LinkedIn, or YouTube profile URL to enrich it with OSINT data.
+          </p>
         </div>
       )}
 
